@@ -482,6 +482,11 @@ export async function onRequest(context) {
         if (!validateOrigin(request)) {
           return respond(errorResponse('Forbidden: invalid origin', 403));
         }
+      } else if (url.pathname === '/api/bookmarks/sync') {
+        // 扩展同步接口：不走浏览器 Cookie，改用 Authorization: Bearer SYNC_TOKEN
+        // 鉴权（sync.js 自身的 checkToken 已校验）。CSRF 攻击只能让浏览器自动带上
+        // Cookie，伪造不出这个 Token，所以这里跳过 CSRF token 校验；否则扩展没有
+        // admin_session，POST 永远报 403 invalid CSRF token，同步用不了。
       } else {
         // 管理 API：使用 CSRF token 校验
         const { valid } = await validateCsrfToken(request, env);
