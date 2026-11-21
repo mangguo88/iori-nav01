@@ -50,6 +50,35 @@ function normalizeOpacityValue(value, fallback) {
   return String(clamped / 100);
 }
 
+// 主色色板：每档 100–900 八个梯度，供 style.css 覆盖已编译的 accent-* 工具类。
+// green 一档与编译进 tailwind.min.css 的 accent 绿完全一致，是默认主色，
+// 所以不改设置时首页外观与现在一模一样。
+const MAIN_COLOR_SCALES = {
+  steelblue: { 100: '#dfe8f0', 200: '#c3d2e0', 300: '#a3b8cc', 400: '#84a0bd', 500: '#6b8cae', 600: '#5b7d9e', 700: '#4a6a8a', 900: '#33475e' },
+  orange: { 100: '#ffedd5', 200: '#fed7aa', 300: '#fdba74', 400: '#fb923c', 500: '#f97316', 600: '#ea580c', 700: '#c2410c', 900: '#7c2d12' },
+  yellow: { 100: '#fef9c3', 200: '#fef08a', 300: '#fde047', 400: '#facc15', 500: '#eab308', 600: '#ca8a04', 700: '#a16207', 900: '#713f12' },
+  green: { 100: '#d9f0e5', 200: '#b4dfcb', 300: '#89caa9', 400: '#61b48a', 500: '#3c976d', 600: '#2e7755', 700: '#265c44', 900: '#1b3e30' },
+  cyan: { 100: '#cffafe', 200: '#a5f3fc', 300: '#67e8f9', 400: '#22d3ee', 500: '#06b6d4', 600: '#0891b2', 700: '#0e7490', 900: '#164e63' },
+  blue: { 100: '#dbeafe', 200: '#bfdbfe', 300: '#93c5fd', 400: '#60a5fa', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8', 900: '#1e3a8a' },
+  purple: { 100: '#ede9fe', 200: '#ddd6fe', 300: '#c4b5fd', 400: '#a78bfa', 500: '#8b5cf6', 600: '#7c3aed', 700: '#6d28d9', 900: '#4c1d95' },
+  pink: { 100: '#fce7f3', 200: '#fbcfe8', 300: '#f9a8d4', 400: '#f472b6', 500: '#ec4899', 600: '#db2777', 700: '#be185d', 900: '#831843' },
+  red: { 100: '#fee2e2', 200: '#fecaca', 300: '#fca5a5', 400: '#f87171', 500: '#ef4444', 600: '#dc2626', 700: '#b91c1c', 900: '#7f1d1d' },
+};
+
+// 模块大小 80–120 的整数字符串，转成 zoom 用的 0.8–1.2；非法值回落 1
+function normalizeCardScaleValue(value) {
+  const num = Number(String(value ?? '').trim());
+  if (!Number.isFinite(num)) return '1';
+  return String(Math.min(120, Math.max(80, Math.round(num))) / 100);
+}
+
+// 卡片间距 8–24 的整数字符串；非法值回落默认 16
+function normalizeCardGapValue(value) {
+  const num = Number(String(value ?? '').trim());
+  if (!Number.isFinite(num)) return '16';
+  return String(Math.min(24, Math.max(8, Math.round(num))));
+}
+
 export async function onRequest(context) {
   const { request, env } = context;
 
@@ -231,13 +260,19 @@ export async function onRequest(context) {
     : allSites;
 
   // === 7. 壁纸处理 ===
-  // 自定义壁纸优先；留空时使用当前桌面卡片风格的默认壁纸
-  const resolvedWallpaperUrl = resolveWallpaperUrl(S.layout_custom_wallpaper, S.layout_card_style);
+  // 主题模式（Meteor / Landscape）自带 CSS 渐变背景；用户没填自定义壁纸时，
+  // 主题背景代替风格默认壁纸。填了自定义壁纸的，自定义壁纸优先，主题只换卡片与文字配色。
+  const layoutTheme = ['meteor', 'landscape'].includes(S.layout_theme) ? S.layout_theme : 'default';
+  const hasCustomWallpaper = Boolean(String(S.layout_custom_wallpaper || '').trim());
+  const useThemeBg = layoutTheme !== 'default' && !hasCustomWallpaper;
+  const resolvedWallpaperUrl = useThemeBg ? '' : resolveWallpaperUrl(S.layout_custom_wallpaper, S.layout_card_style);
   const isCustomWallpaper = Boolean(resolvedWallpaperUrl);
-  const themeClass = isCustomWallpaper ? 'custom-wallpaper' : '';
+  // 壁纸模式 = 有壁纸图 或 主题背景：两种情况下头部、分类导航都走透明壁纸样式
+  const wallpaperMode = isCustomWallpaper || useThemeBg;
+  const themeClass = wallpaperMode ? 'custom-wallpaper' : '';
 
   // === 8. 计算主题样式 ===
-  const themeClasses = getThemeClasses(isCustomWallpaper);
+  const themeClasses = getThemeClasses(wallpaperMode);
   const { headerClass, containerClass, titleColorClass, subTextColorClass, searchInputClass, searchIconClass } = themeClasses;
 
   // === 9. 生成菜单 HTML ===
@@ -263,13 +298,17 @@ export async function onRequest(context) {
     return 'grid-cols-2';
   };
   const getDesktopGridClass = (cols) => {
+    // 全局列数三档：单栏=3 列、双栏=5 列、三栏=8 列；4/6/7 是旧值，仍兼容
+    if (cols === '3') return 'md:grid-cols-3';
     if (cols === '5') return 'md:grid-cols-3 lg:grid-cols-5';
     if (cols === '6') return 'md:grid-cols-3 lg:grid-cols-5 min-[1200px]:grid-cols-6';
     if (cols === '7') return 'md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-7';
+    if (cols === '8') return 'md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-8';
     return 'md:grid-cols-3 lg:grid-cols-4';
   };
   const getCardStyleGridClass = (style, prefix) => {
     if (style === 'style3') return `${prefix}-card-style3`;
+    if (style === 'style4') return `${prefix}-card-style4`;
     return style === 'style2' ? `${prefix}-card-style2` : `${prefix}-card-style1`;
   };
   const mobileCardStyleClass = getCardStyleGridClass(S.mobile_layout_card_style, 'mobile');
@@ -429,7 +468,10 @@ export async function onRequest(context) {
   const safeWallpaperUrl = sanitizeUrl(resolvedWallpaperUrl);
   const defaultBgColor = '#fdf8f3';
   let bgLayerHtml = '';
-  if (safeWallpaperUrl) {
+  if (useThemeBg) {
+    // 主题背景是纯 CSS 渐变（style.css 里 .theme-bg-meteor / .theme-bg-landscape），不加载图片
+    bgLayerHtml = `<div id="fixed-background" class="theme-bg theme-bg-${layoutTheme}" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -9999; pointer-events: none; overflow: hidden;"></div>`;
+  } else if (safeWallpaperUrl) {
     const blurStyle = S.layout_enable_bg_blur ? `filter: blur(${S.layout_bg_blur_intensity}px); transform: scale(1.02);` : '';
     bgLayerHtml = `<div id="fixed-background" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -9999; pointer-events: none; overflow: hidden;"><img src="${safeWallpaperUrl}" alt="" fetchpriority="high" style="width: 100%; height: 100%; object-fit: cover; ${blurStyle}" /></div>`;
   } else {
@@ -457,7 +499,16 @@ export async function onRequest(context) {
   const mobileFrostedBlur = normalizeCssPixelValue(S.mobile_layout_frosted_glass_intensity, frostedBlur);
   const cardBgOpacity = normalizeOpacityValue(S.layout_card_bg_opacity, 1);
   const mobileCardBgOpacity = normalizeOpacityValue(S.mobile_layout_card_bg_opacity, cardBgOpacity);
-  headInjections += `<style>:root { --card-padding: 1.25rem; --card-radius: ${cardRadius}px; --frosted-glass-blur: ${frostedBlur}px; --card-bg-opacity: ${cardBgOpacity}; }@media (max-width: 767px) { :root { --card-radius: ${mobileCardRadius}px; --frosted-glass-blur: ${mobileFrostedBlur}px; --card-bg-opacity: ${mobileCardBgOpacity}; } }</style>`;
+  const mainColorScale = MAIN_COLOR_SCALES[S.layout_main_color] || MAIN_COLOR_SCALES.green;
+  const mainColorVars = Object.entries(mainColorScale).map(([step, hex]) => `--main-${step}: ${hex};`).join(' ');
+  const cardScale = normalizeCardScaleValue(S.layout_card_scale);
+  headInjections += `<style>:root { --card-padding: 1.25rem; --card-radius: ${cardRadius}px; --frosted-glass-blur: ${frostedBlur}px; --card-bg-opacity: ${cardBgOpacity}; ${mainColorVars} --card-scale: ${cardScale}; }@media (max-width: 767px) { :root { --card-radius: ${mobileCardRadius}px; --frosted-glass-blur: ${mobileFrostedBlur}px; --card-bg-opacity: ${mobileCardBgOpacity}; } }</style>`;
+  // 卡片间距只在用户改过默认值（16）时才注入：不改时沿用现有的 gap-3/sm:gap-6
+  // 与风格三 15px，首页外观与现在一模一样。
+  const cardGap = normalizeCardGapValue(S.layout_card_gap);
+  if (cardGap !== '16') {
+    headInjections += `<style>#sitesGrid { gap: ${cardGap}px !important; }</style>`;
+  }
 
   // 自定义字体
   const usedFonts = new Set();
@@ -545,10 +596,12 @@ export async function onRequest(context) {
     S.layout_card_style === 'style3' ? 'desktop-page-style3' : '',
     S.mobile_layout_card_style === 'style3' ? 'mobile-page-style3' : '',
     `category-pos-${categoryPosition}`,
+    layoutTheme !== 'default' ? `theme-${layoutTheme}` : '',
+    S.layout_strip_cards ? 'strip-cards' : '',
   ].filter(Boolean).join(' ');
   html = html.replace(
     '<body class="bg-secondary-50 font-sans text-gray-800">',
-    `<body class="bg-secondary-50 dark:bg-gray-900 font-sans text-gray-800 dark:text-gray-100 relative ${isCustomWallpaper ? 'custom-wallpaper' : ''} ${pageStyleClasses}">${bgLayerHtml}<div id="app-scroll">`
+    `<body class="bg-secondary-50 dark:bg-gray-900 font-sans text-gray-800 dark:text-gray-100 relative ${wallpaperMode ? 'custom-wallpaper' : ''} ${pageStyleClasses}">${bgLayerHtml}<div id="app-scroll">`
   );
   html = html.replace('</body>', '</div></body>');
 

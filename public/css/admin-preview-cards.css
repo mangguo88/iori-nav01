@@ -247,30 +247,73 @@
   flex-direction: column;
 }
 
-.home-live-preview .site-card:not(.style-2):not(.style-3) .site-icon {
+.home-live-preview .site-card:not(.style-2):not(.style-3):not(.style-4) .site-icon {
   width: 2.5rem;
   margin-right: 1rem;
   opacity: 1;
 }
 
-.home-live-preview .site-card:not(.style-2):not(.style-3):hover .site-icon {
+.home-live-preview .site-card:not(.style-2):not(.style-3):not(.style-4):hover .site-icon {
   width: 0;
   margin-right: 0;
   opacity: 0;
   transition-delay: 0.1s;
 }
 
-.home-live-preview .site-card:not(.style-2):not(.style-3) .site-title {
+.home-live-preview .site-card:not(.style-2):not(.style-3):not(.style-4) .site-title {
   transform-origin: left center;
 }
 
-.home-live-preview .site-card:not(.style-2):not(.style-3):hover .site-title {
+.home-live-preview .site-card:not(.style-2):not(.style-3):not(.style-4):hover .site-title {
   transform: scale(1.2);
   transition-delay: 0.1s;
 }
 
 .home-live-preview .site-card.style-2:hover .site-icon {
   transform: scale(1.05);
+}
+
+/* 风格四（深色宽卡）实时预览 */
+.home-live-preview .site-card.style-4 {
+  background: linear-gradient(135deg, #2b3444 0%, #171e2b 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.09) !important;
+  border-radius: 18px !important;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.28);
+  color: #f3f4f6;
+}
+
+.home-live-preview .site-card.style-4 .site-icon {
+  width: 3rem;
+  height: 3rem;
+  margin-right: 1rem;
+}
+
+.home-live-preview .site-card.style-4 .site-icon img,
+.home-live-preview .site-card.style-4 .site-icon div {
+  width: 3rem !important;
+  height: 3rem !important;
+  border-radius: 10px;
+}
+
+.home-live-preview .site-card.style-4 .site-title {
+  color: #fff !important;
+}
+
+.home-live-preview .site-card.style-4 .preview-category {
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: #e5e7eb !important;
+}
+
+.home-live-preview .site-card.style-4 .preview-desc {
+  color: rgba(255, 255, 255, 0.65) !important;
+}
+
+.home-live-preview .site-card.style-4 .preview-links {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.home-live-preview .site-card.style-4 .preview-links span {
+  color: #93c5fd !important;
 }
 
 .home-live-preview .preview-desc {

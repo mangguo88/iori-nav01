@@ -48,6 +48,11 @@ export const SETTINGS_SCHEMA = {
     layout_card_animation: { default: 'radial', type: 'string' },
     layout_card_border_radius: { default: '12', type: 'string' },
     layout_card_bg_opacity: { default: '100', type: 'string' },
+    layout_theme: { default: 'default', type: 'string' },
+    layout_main_color: { default: 'green', type: 'string' },
+    layout_card_scale: { default: '100', type: 'string' },
+    layout_card_gap: { default: '16', type: 'string' },
+    layout_strip_cards: { default: false, type: 'bool' },
     mobile_layout_hide_desc: { default: true, type: 'bool' },
     mobile_layout_hide_links: { default: true, type: 'bool' },
     mobile_layout_hide_category: { default: false, type: 'bool' },
@@ -194,7 +199,7 @@ export function normalizeSettingValueForStorage(key, value) {
         return { ok: true, value: safeUrl };
     }
 
-    if (key === 'layout_grid_cols' && !['4', '5', '6', '7'].includes(text)) {
+    if (key === 'layout_grid_cols' && !['3', '4', '5', '6', '7', '8'].includes(text)) {
         return { ok: false, message: 'Invalid layout_grid_cols' };
     }
 
@@ -218,12 +223,30 @@ export function normalizeSettingValueForStorage(key, value) {
         return { ok: false, message: 'Invalid home_category_flow' };
     }
 
-    if (key === 'layout_card_style' && !['style1', 'style2', 'style3'].includes(text)) {
+    if (key === 'layout_card_style' && !['style1', 'style2', 'style3', 'style4'].includes(text)) {
         return { ok: false, message: 'Invalid layout_card_style' };
     }
 
-    if (key === 'mobile_layout_card_style' && !['style1', 'style2', 'style3'].includes(text)) {
+    if (key === 'mobile_layout_card_style' && !['style1', 'style2', 'style3', 'style4'].includes(text)) {
         return { ok: false, message: 'Invalid mobile_layout_card_style' };
+    }
+
+    if (key === 'layout_theme' && !['default', 'meteor', 'landscape'].includes(text)) {
+        return { ok: false, message: 'Invalid layout_theme' };
+    }
+
+    if (key === 'layout_main_color' && !['steelblue', 'orange', 'yellow', 'green', 'cyan', 'blue', 'purple', 'pink', 'red'].includes(text)) {
+        return { ok: false, message: 'Invalid layout_main_color' };
+    }
+
+    if (key === 'layout_card_scale') {
+        const normalized = normalizeIntegerRange(text, 80, 120, '100');
+        return normalized === null ? { ok: false, message: `Invalid ${key}` } : { ok: true, value: normalized };
+    }
+
+    if (key === 'layout_card_gap') {
+        const normalized = normalizeIntegerRange(text, 8, 24, '16');
+        return normalized === null ? { ok: false, message: `Invalid ${key}` } : { ok: true, value: normalized };
     }
 
     if (key === 'layout_card_animation' && !['radial', 'slideUp', 'fadeIn', 'slideLeft', 'slideRight', 'convergeIn', 'flipIn', 'random'].includes(text)) {

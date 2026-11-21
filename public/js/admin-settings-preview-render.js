@@ -150,7 +150,7 @@
         'overflow-hidden',
         'transition-all',
         settings.frosted ? '' : 'bg-white border border-primary-100/60 shadow-sm',
-        settings.cardStyle === 'style2' ? 'style-2' : (isNavigationTileStyle ? 'style-3' : ''),
+        settings.cardStyle === 'style2' ? 'style-2' : (isNavigationTileStyle ? 'style-3' : (settings.cardStyle === 'style4' ? 'style-4' : '')),
         settings.frosted ? 'frosted frosted-glass-effect' : '',
         hideCardDesc ? 'is-desc-hidden' : '',
         hideCardLinks ? 'is-links-hidden' : '',
@@ -270,7 +270,7 @@
     root.classList.toggle('uses-card-style-3', settings.cardStyle === 'style3');
     if (!isMobilePreview) root.classList.remove('mobile-menu-open');
     const fallbackGridCols = isMobilePreview ? 3 : 4;
-    const maxGridCols = isMobilePreview ? 3 : 7;
+    const maxGridCols = isMobilePreview ? 3 : 8;
     const previewGridCols = Math.min(Math.max(Number(settings.gridCols) || fallbackGridCols, 1), maxGridCols);
     root.style.setProperty('--preview-grid-cols', String(previewGridCols));
     const cardRadius = shared.getPreviewNumberOrDefault(settings.cardRadius, 12);

@@ -16,7 +16,10 @@ function getDeviceSettingOrDefault(settings, device, key, fallback = '') {
 export function buildCardTemplateConfig(settings = {}, device = 'desktop') {
   const isMobile = device === 'mobile';
   const cardStyle = getDeviceSetting(settings, device, 'layout_card_style', isMobile ? 'style2' : 'style1') || (isMobile ? 'style2' : 'style1');
-  const isNavigationTileStyle = cardStyle === 'style3';
+  // 条形模式下风格三不再是紧凑导航块：要显示描述/链接行横排成条，所以取消
+  // style-3 的强制隐藏与 style-3 class，卡片按风格一的结构渲染、由条形 CSS 排版。
+  const stripCards = settings.layout_strip_cards === true;
+  const isNavigationTileStyle = cardStyle === 'style3' && !stripCards;
   const hideDesc = isNavigationTileStyle || getDeviceSetting(settings, device, 'layout_hide_desc', isMobile) === true;
   const hideLinks = isNavigationTileStyle || getDeviceSetting(settings, device, 'layout_hide_links', isMobile) === true;
   const hideCategory = isNavigationTileStyle || getDeviceSetting(settings, device, 'layout_hide_category', false) === true;
@@ -56,7 +59,7 @@ export function buildCardTemplateConfig(settings = {}, device = 'desktop') {
       ? 'site-card group h-full flex flex-col overflow-hidden transition-all'
       : 'site-card group h-full flex flex-col bg-white border border-primary-100/60 shadow-sm overflow-hidden dark:bg-gray-800 dark:border-gray-700',
     frostedClass: enableFrostedGlass ? 'frosted-glass-effect' : '',
-    cardStyleClass: cardStyle === 'style2' ? 'style-2' : (isNavigationTileStyle ? 'style-3' : ''),
+    cardStyleClass: cardStyle === 'style2' ? 'style-2' : (isNavigationTileStyle ? 'style-3' : (cardStyle === 'style4' ? 'style-4' : '')),
     titleClass: 'site-title text-base font-medium text-gray-900 dark:text-gray-100 truncate transition-all duration-300 origin-left',
     descClass: 'mt-2 text-sm text-gray-600 dark:text-gray-400 leading-relaxed line-clamp-2',
     categoryClass: 'site-category inline-flex items-center px-2 py-0.5 mt-1 rounded-full text-xs font-medium bg-secondary-100 text-primary-700 dark:bg-secondary-800 dark:text-primary-300',

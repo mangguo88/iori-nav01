@@ -69,6 +69,13 @@
       searchEngineSwitch: document.getElementById('searchEngineSwitch'),
       cardRadiusInput: document.getElementById('cardRadius'),
       cardRadiusValue: document.getElementById('cardRadiusValue'),
+      themeOptionBtns: document.querySelectorAll('.theme-option'),
+      mainColorOptionBtns: document.querySelectorAll('.main-color-option'),
+      cardScaleRange: document.getElementById('cardScale'),
+      cardScaleValue: document.getElementById('cardScaleValue'),
+      cardGapRange: document.getElementById('cardGap'),
+      cardGapValue: document.getElementById('cardGapValue'),
+      stripCardsSwitch: document.getElementById('stripCardsSwitch'),
       cardTitleFontInput: document.getElementById('cardTitleFont'),
       cardTitleSizeInput: document.getElementById('cardTitleSize'),
       cardTitleColorInput: document.getElementById('cardTitleColor'),
@@ -317,6 +324,11 @@
       }
     }
 
+    currentSettings.layout_theme = document.querySelector('.theme-option.active')?.dataset.theme || 'default';
+    currentSettings.layout_main_color = document.querySelector('.main-color-option.active')?.dataset.color || 'green';
+    currentSettings.layout_card_scale = refs.cardScaleRange?.value || '100';
+    currentSettings.layout_card_gap = refs.cardGapRange?.value || '16';
+    currentSettings.layout_strip_cards = !!refs.stripCardsSwitch?.checked;
     currentSettings.layout_enable_frosted_glass = !!refs.frostedGlassSwitch?.checked;
     currentSettings.layout_frosted_glass_intensity = refs.frostedGlassIntensityRange?.value || '15';
     currentSettings.layout_card_bg_opacity = refs.cardBgOpacityRange?.value || '100';
@@ -467,7 +479,20 @@
     setRangeValue(refs.bgBlurIntensityRange, refs.bgBlurIntensityValue, currentSettings.layout_bg_blur_intensity || '0');
     updateToggleContainer(refs.bgBlurSwitch, 'bgBlurIntensityContainer');
     setValue(refs.bingCountrySelect, currentSettings.bing_country || '');
-    setRadioValue(refs.gridColsRadios, currentSettings.layout_grid_cols);
+    // 全局列数三档（单栏 3 / 双栏 5 / 三栏 8）：旧值 4、6、7 没有对应档位，
+    // 显示时就近归入 5 或 8，下次保存即按归入后的档位写回。
+    const gridColsDisplayMap = { '3': '3', '4': '5', '5': '5', '6': '5', '7': '8', '8': '8' };
+    setRadioValue(refs.gridColsRadios, gridColsDisplayMap[currentSettings.layout_grid_cols] || '5');
+    // 主题与主色：点选切换 .active，保存时读 .active
+    const theme = currentSettings.layout_theme || 'default';
+    document.querySelectorAll('.theme-option').forEach(btn => btn.classList.toggle('active', btn.dataset.theme === theme));
+    const mainColor = currentSettings.layout_main_color || 'green';
+    document.querySelectorAll('.main-color-option').forEach(btn => btn.classList.toggle('active', btn.dataset.color === mainColor));
+    setRangeValue(refs.cardScaleRange, refs.cardScaleValue, currentSettings.layout_card_scale || '100');
+    bindRangeLiveLabel(refs.cardScaleRange, refs.cardScaleValue);
+    setRangeValue(refs.cardGapRange, refs.cardGapValue, currentSettings.layout_card_gap || '16');
+    bindRangeLiveLabel(refs.cardGapRange, refs.cardGapValue);
+    setChecked(refs.stripCardsSwitch, currentSettings.layout_strip_cards);
     const categoryPosition = normalizeCategoryPosition(
       currentSettings.home_category_position,
       currentSettings.layout_menu_layout

@@ -302,3 +302,53 @@ input[list]:hover::-webkit-calendar-picker-indicator {
     padding-top: 0.5rem;
     border-top: 1px solid rgba(0,0,0,0.05);
 }
+
+/* ========================================= */
+/* 风格四 (Style 4): 深色宽卡 */
+/* ========================================= */
+.site-card.style-4 {
+    background: linear-gradient(135deg, #2b3444 0%, #171e2b 100%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.09) !important;
+    border-radius: 18px !important;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.28);
+    color: #f3f4f6;
+}
+
+.site-card.style-4 .site-icon {
+    width: 3rem;
+    height: 3rem;
+    margin-right: 1rem;
+}
+
+.site-card.style-4 .site-icon img,
+.site-card.style-4 .site-icon div {
+    width: 3rem !important;
+    height: 3rem !important;
+    border-radius: 10px;
+}
+
+.site-card.style-4 .site-title {
+    color: #fff !important;
+}
+
+.site-card.style-4:hover .site-title {
+    color: #fff;
+}
+
+.site-card.style-4 .preview-category {
+    background: rgba(255, 255, 255, 0.12) !important;
+    color: #e5e7eb !important;
+}
+
+.site-card.style-4 .preview-desc {
+    color: rgba(255, 255, 255, 0.65) !important;
+}
+
+.site-card.style-4 .preview-links {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 0.5rem;
+}
+
+.site-card.style-4 .preview-links span {
+    color: #93c5fd !important;
+}

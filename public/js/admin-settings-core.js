@@ -183,6 +183,20 @@
   }
 
   function initFormEvents(refs) {
+    // 主题与主色是点选按钮：点谁谁加 .active，保存时读 .active（见 form.js）
+    document.querySelectorAll('.theme-option').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.theme-option').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    });
+    document.querySelectorAll('.main-color-option').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.main-color-option').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    });
+
     refs.providerSelector?.addEventListener('change', () => {
       currentSettings.provider = refs.providerSelector.value;
       updateUIFromSettings();
