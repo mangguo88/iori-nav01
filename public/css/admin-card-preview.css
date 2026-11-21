@@ -226,19 +226,20 @@ input[list]:hover::-webkit-calendar-picker-indicator {
 }
 
 /* ========================================= */
-/* 风格二 (Style 2): 垂直布局 - Copied from style.css */
+/* 风格二 (Style 2): 横向布局，图标在左、标题+描述在右 - Copied from style.css */
 /* ========================================= */
 .site-card.style-2 .flex.items-start {
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
+    flex-direction: row;
+    align-items: flex-start;
+    text-align: left;
 }
 
 .site-card.style-2 .site-icon {
-    margin-right: 0;
-    margin-bottom: 0.5rem;
-    width: 3rem; 
-    height: 3rem;
+    margin-right: 0.75rem;
+    margin-bottom: 0;
+    width: 2.5rem;
+    height: 2.5rem;
+    flex-shrink: 0;
     transition: transform 0.3s ease;
 }
 
@@ -248,26 +249,23 @@ input[list]:hover::-webkit-calendar-picker-indicator {
 
 .site-card.style-2 .site-icon img,
 .site-card.style-2 .site-icon div {
-    margin: 0 auto;
+    margin: 0;
+    width: 2.5rem;
+    height: 2.5rem;
 }
 
 .site-card.style-2 .site-title {
-    text-align: center;
+    text-align: left;
     margin-bottom: 0.25rem;
     display: block;
     width: 100%;
 }
 
 .site-card.style-2 .flex-1 {
-    width: 100%;
     display: flex;
     flex-direction: column;
-    align-items: center;
-}
-
-.site-card.style-2 .preview-category {
-    margin-top: 0.25rem;
-    margin-bottom: 0.5rem;
+    align-items: flex-start;
+    min-width: 0;
 }
 
 .site-card .site-category {
@@ -278,27 +276,26 @@ input[list]:hover::-webkit-calendar-picker-indicator {
     text-overflow: ellipsis;
 }
 
-.home-live-preview[data-device="mobile"] .site-card.style-2 .site-category,
-.site-card.style-2 .preview-category {
-    display: inline-block;
-    max-width: min(100%, 5rem);
-    vertical-align: middle;
-}
-
 .home-live-preview[data-device="mobile"] .live-card-category {
     display: inline-block;
     max-width: min(100%, 5rem);
     vertical-align: middle;
 }
 
-.site-card.style-2 p {
-    text-align: center;
-    margin-top: 0.5rem;
+/* 描述在标题下面：一行，超出截断 */
+.site-card.style-2 .preview-desc {
+    text-align: left;
+    margin-top: 0.25rem;
+    height: auto;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
 .site-card.style-2 .preview-links {
     margin-top: 0.75rem;
-    justify-content: space-between; 
+    justify-content: space-between;
     padding-top: 0.5rem;
     border-top: 1px solid rgba(0,0,0,0.05);
 }

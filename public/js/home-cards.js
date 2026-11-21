@@ -318,6 +318,9 @@
           + `<div class="site-logo-fallback w-10 h-10 rounded-lg bg-primary-600 flex items-center justify-center text-white font-semibold text-lg shadow-inner" style="${site.logoUrlHtml ? 'display:none;' : ''}">${site.cardInitialHtml}</div>`;
 
         const descHtml = cardConfig.hideDesc ? '' : `<p class="${cardConfig.descClass} site-desc cursor-pointer hover:text-primary-600 dark:hover:text-primary-300" data-site-id="${site.id}" title="点击编辑描述">${site.descHtml}</p>`;
+        // 风格二：描述收到标题下面的 flex-1 里（图标右边），外面的 p 不渲染
+        const descInsideHtml = cardConfig.descInTextBlock ? descHtml : '';
+        const descOutsideHtml = cardConfig.descInTextBlock ? '' : descHtml;
 
         const linksHtml = cardConfig.hideLinks ? '' : `
           <div class="${cardConfig.linkRowClass}">
@@ -353,9 +356,10 @@
               <div class="flex-1 min-w-0">
                 <h3 class="${cardConfig.titleClass}" title="${site.nameHtml}">${site.nameHtml}</h3>
                 ${categoryHtml}
+                ${descInsideHtml}
               </div>
             </div>
-            ${descHtml}
+            ${descOutsideHtml}
           </a>
           ${linksHtml}
         </div>

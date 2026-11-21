@@ -18,6 +18,9 @@ export function renderSiteCards(sites, settings) {
     const imgLoadingAttrs = isAboveFold ? 'fetchpriority="high" decoding="async"' : 'loading="lazy" decoding="async"';
 
     const descHtml = config.hideDesc ? '' : `<p class="${config.descClass} site-desc cursor-pointer hover:text-primary-600 dark:hover:text-primary-300" data-site-id="${card.id}" title="点击编辑描述">${card.descHtml}</p>`;
+    // 风格二：描述收到标题下面的 flex-1 里（图标右边），外面的 p 不渲染
+    const descInsideHtml = config.descInTextBlock ? descHtml : '';
+    const descOutsideHtml = config.descInTextBlock ? '' : descHtml;
 
     const linksHtml = config.hideLinks ? '' : `
       <div class="${config.linkRowClass}">
@@ -48,9 +51,10 @@ export function renderSiteCards(sites, settings) {
               <div class="flex-1 min-w-0">
                 <h3 class="${config.titleClass}" title="${card.nameHtml}">${card.nameHtml}</h3>
                 ${categoryHtml}
+                ${descInsideHtml}
               </div>
             </div>
-            ${descHtml}
+            ${descOutsideHtml}
           </a>
           ${linksHtml}
         </div>

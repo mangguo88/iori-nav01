@@ -130,7 +130,8 @@
 
     grid.innerHTML = cards.map(card => {
       const isNavigationTileStyle = settings.cardStyle === 'style3';
-      const hideCardCategory = isNavigationTileStyle || settings.hideCardCategory;
+      // 风格二横排卡片只显示图标+标题+描述，不显示分类角标（与首页一致）
+      const hideCardCategory = settings.cardStyle === 'style2' || isNavigationTileStyle || settings.hideCardCategory;
       const hideCardDesc = isNavigationTileStyle || settings.hideCardDesc;
       const hideCardLinks = isNavigationTileStyle || settings.hideCardLinks;
       const initial = shared.escapeHTML(card.name.slice(0, 1).toUpperCase() || '站');
@@ -163,6 +164,9 @@
                   ${shared.escapeHTML(card.category)}
                 </span>`;
       const descHtml = hideCardDesc ? '' : `<p class="preview-desc mt-2 text-sm text-gray-600 leading-relaxed line-clamp-2" title="${shared.escapeHTML(card.desc)}">${shared.escapeHTML(card.desc)}</p>`;
+      // 风格二：描述收到标题下面的 flex-1 里（图标右边），外面的 p 不渲染
+      const descInsideHtml = settings.cardStyle === 'style2' ? descHtml : '';
+      const descOutsideHtml = settings.cardStyle === 'style2' ? '' : descHtml;
       const linkHtml = hideCardLinks ? '' : `
           <div class="preview-links mt-3 flex items-center justify-between">
             <span class="text-xs text-primary-600 truncate flex-1 min-w-0 mr-2" title="${displayUrlHtml}">${displayUrlHtml}</span>
@@ -184,9 +188,10 @@
                 <div class="flex-1 min-w-0">
                   <h3 class="site-title text-base font-medium text-gray-900 truncate transition-all duration-300 origin-left" title="${nameHtml}">${nameHtml}</h3>
                 ${categoryHtml}
+                ${descInsideHtml}
                 </div>
               </div>
-              ${descHtml}
+              ${descOutsideHtml}
             </a>
             ${linkHtml}
           </div>

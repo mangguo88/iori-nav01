@@ -20,9 +20,12 @@ export function buildCardTemplateConfig(settings = {}, device = 'desktop') {
   // style-3 的强制隐藏与 style-3 class，卡片按风格一的结构渲染、由条形 CSS 排版。
   const stripCards = settings.layout_strip_cards === true;
   const isNavigationTileStyle = cardStyle === 'style3' && !stripCards;
+  // 风格二按小舒同学横排卡片：只显示图标+标题+描述两行，不显示分类角标；
+  // 描述收到标题下面的 flex-1 里（图标右边），不从卡片左边缘另起一行。
+  const isHorizontalTextStyle = cardStyle === 'style2';
   const hideDesc = isNavigationTileStyle || getDeviceSetting(settings, device, 'layout_hide_desc', isMobile) === true;
   const hideLinks = isNavigationTileStyle || getDeviceSetting(settings, device, 'layout_hide_links', isMobile) === true;
-  const hideCategory = isNavigationTileStyle || getDeviceSetting(settings, device, 'layout_hide_category', false) === true;
+  const hideCategory = isHorizontalTextStyle || isNavigationTileStyle || getDeviceSetting(settings, device, 'layout_hide_category', false) === true;
   const enableFrostedGlass = getDeviceSetting(settings, device, 'layout_enable_frosted_glass', false) === true;
   const cardAnimation = getDeviceSetting(settings, device, 'layout_card_animation', 'radial') || 'radial';
   const gridCols = getDeviceSetting(settings, device, 'layout_grid_cols', isMobile ? '3' : '4') || (isMobile ? '3' : '4');
@@ -43,6 +46,8 @@ export function buildCardTemplateConfig(settings = {}, device = 'desktop') {
     hideCategory,
     enableFrostedGlass,
     cardStyle,
+    // 风格二：描述放进标题下面的 flex-1 里（图标右边），渲染器据此决定描述放哪
+    descInTextBlock: isHorizontalTextStyle,
     cardAnimation,
     gridCols,
     hideCopyText,

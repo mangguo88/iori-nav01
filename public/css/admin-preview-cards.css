@@ -174,19 +174,19 @@
 }
 
 .live-card.style-2 {
-  text-align: center;
+  text-align: left;
 }
 
 .live-card.style-2 .live-card-head {
-  align-items: center;
-  flex-direction: column;
-  gap: 0.5rem;
+  align-items: flex-start;
+  flex-direction: row;
+  gap: 0.75rem;
 }
 
 .live-card.style-2 .live-card-icon {
-  width: 2.8rem;
-  height: 2.8rem;
-  flex-basis: 2.8rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex-basis: 2.5rem;
 }
 
 .live-card.style-2 .live-card-link {
@@ -271,6 +271,45 @@
 
 .home-live-preview .site-card.style-2:hover .site-icon {
   transform: scale(1.05);
+}
+
+/* 风格二横排：图标在左、标题+描述在右（与首页一致） */
+.home-live-preview .site-card.style-2 {
+  text-align: left;
+}
+
+.home-live-preview .site-card.style-2 .flex.items-start {
+  flex-direction: row;
+  align-items: flex-start;
+  text-align: left;
+}
+
+.home-live-preview .site-card.style-2 .site-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  margin-right: 0.75rem;
+  margin-bottom: 0;
+  flex-shrink: 0;
+}
+
+.home-live-preview .site-card.style-2 .site-title {
+  text-align: left;
+  transform-origin: left center;
+}
+
+.home-live-preview .site-card.style-2 .flex-1 {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+/* 描述在标题下面：一行，超出截断（覆盖上面 .preview-desc 的 2.85rem 高） */
+.home-live-preview .site-card.style-2 .preview-desc {
+  height: auto;
+  margin-top: 0.25rem;
+  text-align: left;
+  -webkit-line-clamp: 1;
 }
 
 /* 风格四（深色宽卡）实时预览 */

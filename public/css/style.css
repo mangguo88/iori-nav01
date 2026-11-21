@@ -571,45 +571,44 @@ body:not(.app-ready) #sidebar a[href="?catalog=all"] {
 .site-card:not(.style-2):not(.style-3):not(.style-4) .site-title { transform-origin: left center; }
 .site-card:not(.style-2):not(.style-3):not(.style-4):hover .site-title { transform: scale(1.2); transition-delay: 0.1s; }
 
-/* 风格二 (垂直布局) — 小屏 (max-width:400px) 样式已合并到文件底部统一断点中 */
+/* 风格二 (横向布局：图标在左、标题+描述在右，小舒同学同款) — 小屏
+   (max-width:400px) 样式已合并到文件底部统一断点中，同样是横排 */
 .site-card.style-2 .flex.items-start {
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
+    flex-direction: row;
+    align-items: flex-start;
+    text-align: left;
 }
 
 .site-card.style-2 .site-icon {
-    margin-right: 0;
-    margin-bottom: 0.5rem;
-    width: 3rem;
-    height: 3rem;
+    margin-right: 0.75rem;
+    margin-bottom: 0;
+    width: 2.5rem;
+    height: 2.5rem;
+    flex-shrink: 0;
     transition: transform 0.3s ease;
 }
 
 .site-card.style-2:hover .site-icon { transform: scale(1.05); }
 
 .site-card.style-2 .site-icon img, .site-card.style-2 .site-icon div {
-    margin: 0 auto;
+    margin: 0;
+    width: 2.5rem;
+    height: 2.5rem;
 }
 
 .site-card.style-2 .site-title {
-    text-align: center;
+    text-align: left;
     margin-bottom: 0.25rem;
     display: block;
     width: 100%;
-    transform-origin: center !important;
+    transform-origin: left center !important;
 }
 
 .site-card.style-2 .flex-1 {
-    width: 100%;
     display: flex;
     flex-direction: column;
-    align-items: center;
-}
-
-.site-card.style-2 .inline-flex {
-    margin-top: 0.25rem;
-    margin-bottom: 0.5rem;
+    align-items: flex-start;
+    min-width: 0;
 }
 
 .site-card .site-category {
@@ -620,17 +619,13 @@ body:not(.app-ready) #sidebar a[href="?catalog=all"] {
     text-overflow: ellipsis;
 }
 
-@media (max-width: 767px) {
-    .site-card.style-2 .site-category {
-        display: inline-block;
-        max-width: min(100%, 5rem);
-        vertical-align: middle;
-    }
-}
-
-.site-card.style-2 p {
-    text-align: center;
-    margin-top: 0.5rem;
+/* 描述在标题下面（图标右边）：标题一行、描述一行，超出截断；
+   固定 2.85rem 高度取消，悬停时仍按原有规则展开全文 */
+.site-card.style-2 .site-card-content p {
+    text-align: left;
+    margin-top: 0.25rem;
+    height: auto;
+    -webkit-line-clamp: 1;
 }
 
 .site-card.style-2 .mt-3.flex {
@@ -2102,38 +2097,37 @@ html:not(.dark) .dropdown-item.active {
 }
 @media (max-width: 400px) {
   .site-card.style-2 .flex.items-start {
-    flex-direction: column !important;
-    align-items: center !important;
-    text-align: center !important;
+    flex-direction: row !important;
+    align-items: flex-start !important;
+    text-align: left !important;
   }
   .site-card.style-2 .site-icon {
-    margin-right: 0 !important;
-    margin-bottom: 0.5rem !important;
-    width: 3.5rem !important;
-    height: 3.5rem !important;
+    margin-right: 0.75rem !important;
+    margin-bottom: 0 !important;
+    width: 2.5rem !important;
+    height: 2.5rem !important;
     display: flex !important;
     justify-content: center !important;
     align-items: center !important;
   }
   .site-card.style-2 .site-icon img,
   .site-card.style-2 .site-icon div {
-    margin: 0 auto !important;
+    margin: 0 !important;
   }
   .site-card.style-2 .site-title {
-    text-align: center !important;
+    text-align: left !important;
     width: 100% !important;
     display: block !important;
-    transform-origin: center !important;
+    transform-origin: left center !important;
   }
   .site-card.style-2 .flex-1 {
-    width: 100% !important;
     display: flex !important;
     flex-direction: column !important;
-    align-items: center !important;
+    align-items: flex-start !important;
   }
   .site-card.style-2 p {
-    text-align: center !important;
-    margin-top: 0.5rem !important;
+    text-align: left !important;
+    margin-top: 0.25rem !important;
   }
   .site-card.style-2 .mt-3.flex {
     margin-top: auto !important;
@@ -2169,7 +2163,8 @@ html:not(.dark) .dropdown-item.active {
   #sitesGrid.grid-cols-3.mobile-card-style2 .site-card.style-2 .site-icon {
     width: 2.25rem !important;
     height: 2.25rem !important;
-    margin-bottom: 0.375rem !important;
+    margin-right: 0.5rem !important;
+    margin-bottom: 0 !important;
   }
 
   #sitesGrid.grid-cols-2.mobile-card-style1 .site-card:not(.style-2):not(.style-3) .site-icon img,
@@ -2191,17 +2186,11 @@ html:not(.dark) .dropdown-item.active {
   }
 
   #sitesGrid.grid-cols-2.mobile-card-style1 .site-category,
-  #sitesGrid.grid-cols-3.mobile-card-style1 .site-category,
-  #sitesGrid.grid-cols-3.mobile-card-style2 .site-card.style-2 .site-category {
+  #sitesGrid.grid-cols-3.mobile-card-style1 .site-category {
     max-width: min(100%, 4.25rem);
     padding: 0.125rem 0.375rem;
     font-size: 0.68rem;
     line-height: 1.15;
-  }
-
-  #sitesGrid.grid-cols-3.mobile-card-style2 .site-card.style-2 .inline-flex {
-    margin-top: 0.125rem;
-    margin-bottom: 0;
   }
 }
 
