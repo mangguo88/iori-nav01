@@ -18,6 +18,22 @@
   <link rel="stylesheet" href="/css/admin-dropdown.css?v=9efddb85" />
   <link rel="stylesheet" href="/css/tailwind.min.css?v=eb523845">
   <link rel="stylesheet" href="/css/admin-graph.css?v=06182517" />
+  <style>
+    /* 分组卡片大小三档（只影响 #categoryGrid 里的顶级分类卡片，不影响首页卡片） */
+    .cat-size-switch [data-cat-size].cat-size-active {
+      background-color: #dcfce7;
+      color: #15803d;
+      border-color: #86efac;
+    }
+    #categoryGrid.cat-size-compact { gap: 0.75rem; }
+    #categoryGrid.cat-size-compact .site-card > div.p-5 { padding: 0.75rem; }
+    #categoryGrid.cat-size-compact .site-card h3 { font-size: 0.95rem; }
+    #categoryGrid.cat-size-compact .site-card .text-sm { font-size: 0.75rem; }
+    #categoryGrid.cat-size-roomy { gap: 1.5rem; }
+    #categoryGrid.cat-size-roomy .site-card > div.p-5 { padding: 1.75rem; }
+    #categoryGrid.cat-size-roomy .site-card h3 { font-size: 1.25rem; }
+    #categoryGrid.cat-size-roomy .site-card .text-sm { font-size: 0.95rem; }
+  </style>
 </head>
 
 <body>
@@ -1680,6 +1696,15 @@
                 class="text-sm text-gray-600 hover:text-primary-600 bg-white border border-gray-300 px-3 py-1 rounded shadow-sm transition-colors">全选当前页</button>
               <button id="batchDeleteCategoriesBtn" disabled
                 class="text-sm text-white bg-red-600 hover:bg-red-700 px-3 py-1 rounded shadow-sm transition-colors opacity-50 cursor-not-allowed">批量删除分组</button>
+              <span class="cat-size-switch flex items-center gap-1 ml-1" role="group" aria-label="分组卡片大小">
+                <span class="text-sm text-gray-500 mr-1">卡片大小</span>
+                <button type="button" data-cat-size="compact"
+                  class="text-sm text-gray-600 hover:text-primary-600 bg-white border border-gray-300 px-2 py-1 rounded shadow-sm transition-colors" title="紧凑：卡片更矮、字更小">紧凑</button>
+                <button type="button" data-cat-size="default"
+                  class="text-sm text-gray-600 hover:text-primary-600 bg-white border border-gray-300 px-2 py-1 rounded shadow-sm transition-colors" title="默认大小">默认</button>
+                <button type="button" data-cat-size="roomy"
+                  class="text-sm text-gray-600 hover:text-primary-600 bg-white border border-gray-300 px-2 py-1 rounded shadow-sm transition-colors" title="宽松：卡片更高、字更大">宽松</button>
+              </span>
             </div>
           </div>
           <div id="categoryGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
@@ -1890,7 +1915,7 @@
   <script src="/js/admin-tabs.js?v=a52bd6f3"></script>
   <script src="/js/admin-bookmark-privacy.js?v=306f5fdb"></script>
   <script src="/js/admin.js?v=39f7ce60"></script>
-  <script src="/js/admin-categories.js?v=f2dc8fb7"></script>
+  <script src="/js/admin-categories.js?v=c0210e80"></script>
   <script src="/js/admin-bookmarks.js?v=050f96b1"></script>
   <script src="/js/admin-batch.js?v=89679abf"></script>
   <script src="/js/wallpaper-defaults.js?v=b65f42d1"></script>

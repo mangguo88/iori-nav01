@@ -3,7 +3,7 @@ import { isAdminAuthenticated, getHomeCacheKey, clearHomeCacheDirtyIfValue, mark
 import { FONT_MAP } from './constants';
 import { escapeHTML, sanitizeUrl, normalizeSortOrder, getStyleStr, sanitizeStyleColor } from './lib/utils';
 import { getSettingsKeys, parseSettings } from './lib/settings-parser';
-import { renderHorizontalMenu, renderVerticalMenu } from './lib/menu-renderer';
+import { renderHorizontalMenu, renderSidebarTree, shortCategoryName, buildCategoryPathTree } from './lib/menu-renderer';
 import { renderSiteCards, renderEmptyState } from './lib/card-renderer';
 import { buildCardHydrationState } from './lib/card-model';
 import { ensureSchemaReady } from './lib/schema-migration';
@@ -275,16 +275,29 @@ export async function onRequest(context) {
   const themeClasses = getThemeClasses(wallpaperMode);
   const { headerClass, containerClass, titleColorClass, subTextColorClass, searchInputClass, searchIconClass } = themeClasses;
 
+  // === 8b. 构建左侧栏文件夹树（按全路径分段嵌套，见 lib/menu-renderer）===
+  const directSiteCounts = new Map();
+  for (const site of allSites) {
+    const cid = site.catelog_id;
+    if (cid === null || cid === undefined) continue;
+    directSiteCounts.set(cid, (directSiteCounts.get(cid) || 0) + 1);
+  }
+  const sidebarCategoryTree = buildCategoryPathTree(categories, directSiteCounts);
+
   // === 9. 生成菜单 HTML ===
   const allLinkActive = !catalogExists;
   const allLinkClass = allLinkActive ? 'active' : 'inactive';
   const allLinkActiveMarker = allLinkActive ? 'nav-item-active' : '';
+  const allLinkSidebarClass = allLinkActive
+    ? 'bg-secondary-100 text-primary-700 dark:bg-gray-800 dark:text-primary-400'
+    : 'hover:bg-gray-100 text-gray-700 dark:text-gray-300 dark:hover:bg-gray-800';
+  const allLinkSidebarIconClass = allLinkActive ? 'text-primary-600 dark:text-primary-400' : 'text-gray-400 dark:text-gray-500';
   const horizontalAllLink = `
     <div class="menu-item-wrapper relative inline-block text-left">
       <a href="?catalog=all" class="nav-btn ${allLinkClass} ${allLinkActiveMarker}">全部</a>
     </div>`;
   const horizontalCatalogMarkup = horizontalAllLink + renderHorizontalMenu(rootCategories, currentCatalogName);
-  const catalogLinkMarkup = renderVerticalMenu(rootCategories, currentCatalogName, isCustomWallpaper);
+  const catalogLinkMarkup = renderSidebarTree(sidebarCategoryTree, catalogExists ? requestedCatalogId : null);
 
   // === 10. 生成站点卡片 HTML ===
   let sitesGridMarkup = sites.length > 0
@@ -316,10 +329,12 @@ export async function onRequest(context) {
   let gridClass = `grid ${getMobileGridClass(S.mobile_layout_grid_cols)} ${getDesktopGridClass(S.layout_grid_cols)} ${mobileCardStyleClass} ${desktopCardStyleClass} gap-3 sm:gap-6 justify-items-center`;
 
   // === 12. 计算文本和统计信息 ===
-  const headingPlainText = currentCatalogName ? `${currentCatalogName} · ${sites.length} 个书签` : `全部收藏 · ${sites.length} 个书签`;
+  // 标题栏的当前分类只显示短名（如 "vps服务器"），完整路径在侧栏/导航的 title 提示里
+  const headingCatalogShort = currentCatalogName ? shortCategoryName(currentCatalogName) : '';
+  const headingPlainText = currentCatalogName ? `${headingCatalogShort} · ${sites.length} 个书签` : `全部收藏 · ${sites.length} 个书签`;
   const headingText = escapeHTML(headingPlainText);
   const headingDefaultAttr = escapeHTML(headingPlainText);
-  const headingActiveAttr = catalogExists ? escapeHTML(currentCatalogName) : '';
+  const headingActiveAttr = catalogExists ? escapeHTML(headingCatalogShort) : '';
   const submissionEnabled = String(env.ENABLE_PUBLIC_SUBMISSION) === 'true';
   const submissionClass = submissionEnabled ? '' : '!hidden';
   const siteName = S.home_site_name || env.SITE_NAME || '灰色轨迹';
@@ -409,6 +424,8 @@ export async function onRequest(context) {
     </div>`;
 
   // === 15. 布局控制 ===
+  // 左侧栏在桌面端默认显示（横排/竖排菜单布局都一样），内容区让出左栏宽度；
+  // 桌面端汉堡按钮（label for #sidebar-toggle）可把侧栏收起来，移动端仍是抽屉。
   let sidebarClass = '';
   let mainClass = 'lg:ml-64';
   let sidebarToggleClass = '';
@@ -423,11 +440,6 @@ export async function onRequest(context) {
   let headerContent = verticalHeaderContent;
 
   if (isHorizontalCategoryLayout) {
-    sidebarClass = 'min-[550px]:hidden';
-    mainClass = '';
-    sidebarToggleClass = '!hidden';
-    mobileToggleVisibilityClass = 'min-[550px]:hidden';
-
     if (!S.home_hide_admin) {
       adminIconHtml = `
         <a href="/admin" target="_blank" class="top-action-icon admin-action-icon" title="后台管理">
@@ -634,12 +646,14 @@ export async function onRequest(context) {
     'CANONICAL_URL': escapeHTML(canonicalUrl),
     'OG_IMAGE_URL': escapeHTML(ogImageUrl),
     'FOOTER_TEXT': escapeHTML(footerText),
-    'CATALOG_EXISTS': catalogExists ? 'true' : 'false',
     'CATALOG_LINKS': catalogLinkMarkup,
     'SUBMISSION_CLASS': submissionClass,
     'HEADING_TEXT': headingText,
     'HEADING_DEFAULT': headingDefaultAttr,
     'HEADING_ACTIVE': headingActiveAttr,
+    'TOTAL_SITES': String(allSites.length),
+    'ALL_LINK_CLASS': allLinkSidebarClass,
+    'ALL_LINK_ICON_CLASS': allLinkSidebarIconClass,
     'STATS_VISIBLE': S.home_hide_stats ? 'hidden' : '',
     'STATS_STYLE': statsStyle,
     'HITOKOTO_VISIBLE': S.home_hide_hitokoto ? 'hidden' : '',

@@ -33,7 +33,7 @@ export function renderSiteCards(sites, settings) {
       </div>`;
 
     const categoryHtml = config.hideCategory ? '' : `
-      <span class="${config.categoryClass}">
+      <span class="${config.categoryClass}" title="${card.catalogFullHtml || ''}">
         ${card.catalogHtml}
       </span>`;
 

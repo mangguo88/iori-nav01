@@ -195,6 +195,117 @@
       });
     }
 
+    // ---- 左侧栏文件夹树：折叠/展开（状态存 localStorage）----
+    const SIDEBAR_COLLAPSED_KEY = 'iori_sidebar_collapsed_v1';
+
+    function getSidebarCollapsedPaths() {
+      try {
+        const raw = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
+        const arr = raw ? JSON.parse(raw) : [];
+        return new Set(Array.isArray(arr) ? arr.filter((p) => typeof p === 'string') : []);
+      } catch (e) { return new Set(); }
+    }
+
+    function saveSidebarCollapsedPaths(set) {
+      try { localStorage.setItem(SIDEBAR_COLLAPSED_KEY, JSON.stringify([...set])); } catch (e) { /* 隐私模式等写不进时静默忽略 */ }
+    }
+
+    function setSidebarNodeCollapsed(node, collapsed) {
+      node.classList.toggle('is-collapsed', collapsed);
+      const toggle = node.querySelector(':scope > .sidebar-tree-row .sidebar-tree-toggle');
+      if (toggle) toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    }
+
+    // 把指定分类的祖先节点展开（客户端切换分类后，高亮项可能藏在收起的父节点里）
+    function expandSidebarAncestors(catalogId) {
+      const sidebar = document.getElementById('sidebar');
+      if (!sidebar || !catalogId) return;
+      const link = sidebar.querySelector(`a[data-id="${catalogId}"]`);
+      if (!link) return;
+      const collapsed = getSidebarCollapsedPaths();
+      let changed = false;
+      let node = link.closest('.sidebar-tree-node');
+      while (node) {
+        if (node.classList.contains('is-collapsed')) {
+          setSidebarNodeCollapsed(node, false);
+          collapsed.delete(node.getAttribute('data-tree-path'));
+          changed = true;
+        }
+        node = node.parentElement.closest('.sidebar-tree-node');
+      }
+      if (changed) saveSidebarCollapsedPaths(collapsed);
+    }
+
+    function initSidebarTree() {
+      const sidebar = document.getElementById('sidebar');
+      if (!sidebar) return;
+      const nodes = Array.from(sidebar.querySelectorAll('.sidebar-tree-node[data-tree-path]'));
+      if (nodes.length === 0) return;
+
+      // 当前选中分类的祖先节点强制展开（即使之前收起过），保证高亮可见；
+      // 只改 DOM，不改存着的折叠记录
+      const activePaths = new Set();
+      const activeLink = sidebar.querySelector('.sidebar-tree-node a[data-id].bg-secondary-100');
+      if (activeLink) {
+        let node = activeLink.closest('.sidebar-tree-node');
+        while (node) {
+          activePaths.add(node.getAttribute('data-tree-path'));
+          node = node.parentElement.closest('.sidebar-tree-node');
+        }
+      }
+
+      const collapsed = getSidebarCollapsedPaths();
+      nodes.forEach((node) => {
+        const path = node.getAttribute('data-tree-path');
+        if (collapsed.has(path) && !activePaths.has(path)) setSidebarNodeCollapsed(node, true);
+      });
+
+      const toggleNode = (node) => {
+        const path = node.getAttribute('data-tree-path');
+        const willCollapse = !node.classList.contains('is-collapsed');
+        setSidebarNodeCollapsed(node, willCollapse);
+        const set = getSidebarCollapsedPaths();
+        if (willCollapse) set.add(path); else set.delete(path);
+        saveSidebarCollapsedPaths(set);
+      };
+
+      sidebar.addEventListener('click', (e) => {
+        const toggle = e.target.closest('.sidebar-tree-toggle');
+        if (toggle) {
+          const node = toggle.closest('.sidebar-tree-node');
+          if (node) toggleNode(node);
+          return;
+        }
+        // 虚拟分组头（没有真实分类）：点名称只折叠/展开，不跳转
+        const group = e.target.closest('.sidebar-tree-group');
+        if (group) {
+          const node = group.closest('.sidebar-tree-node');
+          if (node) toggleNode(node);
+        }
+      });
+
+      const expandAllBtn = document.getElementById('sidebarExpandAllBtn');
+      if (expandAllBtn) {
+        expandAllBtn.addEventListener('click', () => {
+          nodes.forEach((node) => setSidebarNodeCollapsed(node, false));
+          saveSidebarCollapsedPaths(new Set());
+        });
+      }
+      const collapseAllBtn = document.getElementById('sidebarCollapseAllBtn');
+      if (collapseAllBtn) {
+        collapseAllBtn.addEventListener('click', () => {
+          const set = new Set();
+          nodes.forEach((node) => {
+            const path = node.getAttribute('data-tree-path');
+            if (activePaths.has(path)) return; // 当前分类的祖先保持展开
+            setSidebarNodeCollapsed(node, true);
+            set.add(path);
+          });
+          saveSidebarCollapsedPaths(set);
+        });
+      }
+    }
+
     document.addEventListener('click', async (e) => {
       const link = e.target.closest('a[href^="?catalog="]');
       if (!link) return;
@@ -336,6 +447,9 @@
           }
         });
       }
+
+      // 侧栏树：当前分类的祖先节点展开，保证高亮项可见
+      if (catalogId) expandSidebarAncestors(catalogId);
     }
 
     function restoreLastCategory() {
@@ -385,6 +499,7 @@
     }
 
     Home.updateNavigationState = updateNavigationState;
+    initSidebarTree();
     restoreLastCategory();
   };
 })();

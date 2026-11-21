@@ -17,7 +17,7 @@
   <meta name="twitter:description" content="{{SITE_DESCRIPTION}}">
   <meta name="twitter:image" content="{{OG_IMAGE_URL}}">
   <link rel="icon" href="/favicon.svg?v=148aafdf" type="image/svg+xml">
-  <link rel="stylesheet" href="/css/style.css?v=ea7e128c">
+  <link rel="stylesheet" href="/css/style.css?v=21c840ab">
   <script>
     // Init Theme ASAP to prevent FOUC
     if (localStorage.getItem('theme') === 'dark') {
@@ -78,14 +78,32 @@
       </div>
       
       <div>
-        <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">分类导航</h3>
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">分类导航</h3>
+          <div class="flex items-center gap-2 text-xs">
+            <button id="sidebarExpandAllBtn" type="button" class="text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors">全部展开</button>
+            <span class="text-gray-300 dark:text-gray-600">|</span>
+            <button id="sidebarCollapseAllBtn" type="button" class="text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors">全部折叠</button>
+          </div>
+        </div>
         <div class="space-y-1">
-          <a href="?catalog=all" class="flex items-center px-3 py-2 rounded-lg {{CATALOG_EXISTS}} w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-            </svg>
-            <span class="text-gray-700 dark:text-gray-200">全部</span>
-          </a>
+          <div class="sidebar-tree-row flex items-center">
+            <button id="sidebarBackToTop" type="button" class="flex items-center px-3 py-2 rounded-lg flex-1 min-w-0 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 11l7-7 7 7M5 19l7-7 7 7" />
+              </svg>
+              <span class="sidebar-tree-name truncate">回到顶部</span>
+            </button>
+          </div>
+          <div class="sidebar-tree-row flex items-center">
+            <a href="?catalog=all" class="sidebar-tree-link flex items-center px-3 py-2 rounded-lg flex-1 min-w-0 transition-colors duration-200 {{ALL_LINK_CLASS}}">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 flex-shrink-0 {{ALL_LINK_ICON_CLASS}}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+              <span class="sidebar-tree-name truncate">全部收藏</span>
+            </a>
+            <span class="sidebar-tree-count" title="{{TOTAL_SITES}} 个书签">{{TOTAL_SITES}}</span>
+          </div>
           {{CATALOG_LINKS}}
         </div>
       </div>
@@ -219,11 +237,11 @@
     </div>
   </div>
   
-  <script src="/js/home-ui.js?v=82767968"></script>
-  <script src="/js/home-cards.js?v=6bc28a9d"></script>
+  <script src="/js/home-ui.js?v=a65e855c"></script>
+  <script src="/js/home-cards.js?v=4d5441ac"></script>
   <script src="/js/home-submit.js?v=5457a66d"></script>
   <script src="/js/home-search.js?v=5eadfb7e"></script>
-  <script src="/js/home-category-nav.js?v=29aa1efc"></script>
+  <script src="/js/home-category-nav.js?v=88bbdf98"></script>
   <script src="/js/main.js?v=193ce81f"></script>
 </body>
 </html>

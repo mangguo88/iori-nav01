@@ -333,7 +333,7 @@
           </div>`;
 
         const categoryHtml = cardConfig.hideCategory ? '' : `
-                <span class="${cardConfig.categoryClass}">
+                <span class="${cardConfig.categoryClass}" title="${site.catalogFullHtml || ''}">
                   ${site.catalogHtml}
                 </span>`;
 
@@ -388,6 +388,12 @@
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
+    }
+
+    // 文件夹短名：全路径按 ' / ' 切最后一段，如 "收藏夹栏 / VPS类 / vps服务器" -> "vps服务器"
+    function shortCategoryName(fullName) {
+      const parts = String(fullName || '').split('/').map((s) => s.trim()).filter(Boolean);
+      return parts.length ? parts[parts.length - 1] : (String(fullName || '').trim() || '未分类');
     }
 
     function ensureDescEditModal() {
@@ -655,11 +661,12 @@
     let moveSiteCategories = [];
 
     // 优先用页面上已有的分类导航（横排 #horizontalCategoryNav、更多下拉、左侧 #sidebar）
+    // 移动弹窗里显示完整路径（同名文件夹靠全路径区分）；卡片角标只显示短名
     function getPageCategories() {
       const seen = new Map();
       document.querySelectorAll('#horizontalCategoryNav a[data-id], #horizontalMoreDropdown a[data-id], #sidebar a[data-id]').forEach((a) => {
         const id = a.getAttribute('data-id');
-        const name = (a.textContent || '').trim();
+        const name = a.getAttribute('data-full-name') || (a.textContent || '').trim();
         if (id && name && !seen.has(String(id))) seen.set(String(id), name);
       });
       return [...seen.entries()].map(([id, name]) => ({ id: Number(id), name }));
@@ -782,7 +789,7 @@
         }
         site.catelog_id = targetId;
         const target = moveSiteCategories.find((c) => c.id === targetId);
-        if (target) site.catalogHtml = escapeHtml(target.name);
+        if (target) { site.catalogHtml = escapeHtml(shortCategoryName(target.name)); site.catalogFullHtml = escapeHtml(target.name); }
         // 当前在看某一分类、书签被移走了：卡片直接消失；否则原地改分组角标
         const card = sitesGrid && sitesGrid.querySelector('.site-card[data-id="' + site.id + '"]');
         if (activeRenderedCatalogId && String(targetId) !== String(activeRenderedCatalogId)) {

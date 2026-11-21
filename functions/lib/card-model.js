@@ -1,4 +1,5 @@
 import { escapeHTML, sanitizeUrl } from './utils';
+import { shortCategoryName } from './menu-renderer';
 
 function getDeviceSetting(settings, device, key, fallback = '') {
   const mobileKey = `mobile_${key}`;
@@ -114,7 +115,8 @@ export function buildCardViewModel(site) {
     id: site?.id,
     catelog_id: site?.catelog_id,
     nameHtml: escapeHTML(rawName),
-    catalogHtml: escapeHTML(rawCatalog),
+    catalogHtml: escapeHTML(shortCategoryName(rawCatalog)),
+    catalogFullHtml: escapeHTML(rawCatalog),
     descHtml: escapeHTML(rawDesc),
     urlHtml: escapeHTML(normalizedUrl),
     displayUrlHtml: escapeHTML(normalizedUrl || '未提供链接'),

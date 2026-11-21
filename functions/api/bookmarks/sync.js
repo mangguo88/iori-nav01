@@ -177,8 +177,13 @@ export async function onRequestPost(context) {
       }
       const items = [...byUrl.values()];
       let added = 0, updated = 0, skipped = 0;
-      // 先建好所有分类
-      for (const item of items) await resolveCategoryId(item.folderPath);
+      // 先建好所有分类：只给带合法链接的条目建分类。链接无效的条目后面会跳过，
+      // 不给它建分类——空文件夹（既没有书签、子孙文件夹里也没有书签）以后同步
+      // 不会再建出来。已有分类不删，单条 upsert/move 本来就先验链接再建分类。
+      for (const item of items) {
+        if (!isValidUrl((item.url || '').trim())) continue;
+        await resolveCategoryId(item.folderPath);
+      }
       // 再一次性查出已存在的 URL
       const existingUrls = new Set();
       const urls = items.map((i) => (i.url || '').trim()).filter(isValidUrl);

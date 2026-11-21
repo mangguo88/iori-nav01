@@ -23,6 +23,15 @@
     closeSidebar?.addEventListener('click', closeSidebarMenu);
     mobileOverlay?.addEventListener('click', closeSidebarMenu);
 
+    // 侧栏顶部的“回到顶部”：滚到页面顶，手机抽屉里点完顺手收起
+    const sidebarBackToTop = document.getElementById('sidebarBackToTop');
+    sidebarBackToTop?.addEventListener('click', () => {
+      const appScroll = document.getElementById('app-scroll');
+      if (appScroll) appScroll.scrollTo({ top: 0, behavior: 'smooth' });
+      else window.scrollTo({ top: 0, behavior: 'smooth' });
+      closeSidebarMenu();
+    });
+
     return { closeSidebarMenu };
   }
 

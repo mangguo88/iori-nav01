@@ -3,6 +3,13 @@
  * 分类管理功能：列表展示、增删改查、排序
  */
 
+// 文件夹短名：全路径按 ' / ' 切最后一段，如 "收藏夹栏 / VPS类 / vps服务器" -> "vps服务器"；
+// 完整路径保留在卡片标题的 title 悬停提示里
+function shortCategoryName(fullName) {
+    const parts = String(fullName || '').split('/').map((s) => s.trim()).filter(Boolean);
+    return parts.length ? parts[parts.length - 1] : (String(fullName || '').trim() || '未分类');
+}
+
 // DOM Elements
 const categoryGrid = document.getElementById('categoryGrid');
 const categoryPrevPageBtn = document.getElementById('categoryPrevPage');
@@ -162,6 +169,9 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function initCategoryEvents() {
+    // 分组卡片大小三档（紧凑 / 默认 / 宽松），只影响 #categoryGrid 里的分组卡片
+    initCategoryCardSize();
+
     // Page Size
     if (categoryPageSizeSelect) {
         categoryPageSizeSelect.value = categoryPageSize;
@@ -327,6 +337,32 @@ function updateCategoryBreadcrumb(parentId) {
     }
 }
 
+// 分组卡片大小三档：紧凑 / 默认 / 宽松（只影响 #categoryGrid 里的分组卡片，
+// 选择存 localStorage，后台展示偏好，不进 D1 设置；刷新后保持上次的选择）
+const CATEGORY_CARD_SIZE_KEY = 'admin_category_card_size';
+const CATEGORY_CARD_SIZES = ['compact', 'default', 'roomy'];
+
+function applyCategoryCardSize(size) {
+    const value = CATEGORY_CARD_SIZES.includes(size) ? size : 'default';
+    if (categoryGrid) {
+        categoryGrid.classList.remove('cat-size-compact', 'cat-size-default', 'cat-size-roomy');
+        categoryGrid.classList.add('cat-size-' + value);
+    }
+    document.querySelectorAll('.cat-size-switch [data-cat-size]').forEach((btn) => {
+        btn.classList.toggle('cat-size-active', btn.getAttribute('data-cat-size') === value);
+    });
+    try { localStorage.setItem(CATEGORY_CARD_SIZE_KEY, value); } catch (e) { /* 隐私模式等写不进时静默忽略 */ }
+}
+
+function initCategoryCardSize() {
+    let saved = 'default';
+    try { saved = localStorage.getItem(CATEGORY_CARD_SIZE_KEY) || 'default'; } catch (e) { /* 读不到就用默认 */ }
+    applyCategoryCardSize(saved);
+    document.querySelectorAll('.cat-size-switch [data-cat-size]').forEach((btn) => {
+        btn.addEventListener('click', () => applyCategoryCardSize(btn.getAttribute('data-cat-size')));
+    });
+}
+
 function renderCategoryCards(categories) {
     if (!categoryGrid) return;
     categoryGrid.innerHTML = '';
@@ -337,7 +373,8 @@ function renderCategoryCards(categories) {
 
     categories.forEach(item => {
         const card = document.createElement('div');
-        const safeName = window.escapeHTML(item.catelog);
+        const safeName = window.escapeHTML(shortCategoryName(item.catelog));
+        const safeFullName = window.escapeHTML(item.catelog);
         const siteCount = item.site_count || 0;
         const sortValue = item.sort_order === null || item.sort_order === 9999 ? '默认' : item.sort_order;
         const subCount = item.children ? item.children.length : 0;
@@ -368,7 +405,7 @@ function renderCategoryCards(categories) {
             <div class="p-5">
                 <div class="flex items-center justify-between mb-2">
                     <div class="flex items-center min-w-0">
-                        <h3 class="text-lg font-medium text-gray-900 truncate" title="${safeName}">${safeName}</h3>
+                        <h3 class="text-lg font-medium text-gray-900 truncate" title="${safeFullName}">${safeName}</h3>
                         ${privateIcon}
                     </div>
                     <span class="bg-primary-50 text-primary-700 text-xs px-2 py-1 rounded-full border border-primary-100 flex-shrink-0 ml-2">ID: ${item.id}</span>
