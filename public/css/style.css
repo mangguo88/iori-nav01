@@ -890,16 +890,6 @@ html.dark .style3-hover-title {
 html.dark .style3-hover-desc {
   color: #9ca3af;
 }
-.style3-hover-url {
-  margin-top: 8px;
-  color: #3b82f6;
-  font-size: 12px;
-  line-height: 1.5;
-  word-break: break-all;
-}
-html.dark .style3-hover-url {
-  color: #60a5fa;
-}
 
 /* 毛玻璃默认白字；用户自定义标题色仍可通过注入的 color !important 覆盖 */
 .site-card.style-3.frosted-glass-effect .site-title {

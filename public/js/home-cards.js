@@ -928,7 +928,6 @@
       const name = decodeHtmlEntities(site.nameHtml || '');
       const rawDesc = decodeHtmlEntities(site.descHtml || '');
       const desc = (site.hasDesc && rawDesc && rawDesc !== '暂无描述') ? rawDesc : '暂无描述';
-      const url = decodeHtmlEntities(site.displayUrlHtml || site.urlHtml || '');
       const logo = decodeHtmlEntities(site.logoUrlHtml || '');
       panel.innerHTML = `
         <div class="style3-hover-head">
@@ -936,8 +935,7 @@
           <div class="style3-hover-fallback" style="${logo ? 'display:none;' : ''}">${escapeHtml(site.cardInitialHtml || '站')}</div>
           <div class="style3-hover-title">${escapeHtml(name)}</div>
         </div>
-        <div class="style3-hover-desc">${escapeHtml(desc)}</div>
-        ${url ? `<div class="style3-hover-url">${escapeHtml(url)}</div>` : ''}`;
+        <div class="style3-hover-desc">${escapeHtml(desc)}</div>`;
       panel.classList.toggle('frosted', card.classList.contains('frosted-glass-effect'));
       // 先离屏显示量高度，再定位到卡片上（只过渡 opacity，不做位移，不闪烁）
       panel.classList.add('visible');
