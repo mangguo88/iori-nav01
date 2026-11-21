@@ -526,6 +526,178 @@
       });
     }
 
+    // ---- 右键菜单：完整编辑（标题 + URL + 描述）----
+    // 点卡片描述文字仍是上面的描述弹窗；右键菜单“编辑”开这个完整弹窗，
+    // 仿后台书签编辑面板（标题 / URL / 描述三个字段）。
+    // 注意：window.IORI_SITES 里没有创建时间字段（SSR 只查了 id/name/url/logo/
+    // desc/catelog_id/sort_order/is_private），所以这里不显示“添加时间”，也不编造。
+    let fullEditModal = null;
+    let fullEditingSite = null;
+
+    function ensureFullEditModal() {
+      if (fullEditModal) return fullEditModal;
+      const modal = document.createElement('div');
+      modal.id = 'fullEditModal';
+      modal.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 opacity-0 invisible transition-all duration-300';
+      modal.innerHTML = `
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md mx-4 transform translate-y-8 transition-all duration-300">
+          <div class="p-6">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100">编辑</h2>
+              <button type="button" data-full-edit-close class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
+                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <label for="fullEditTitle" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">标题</label>
+            <input id="fullEditTitle" type="text" class="block w-full px-3 py-2 border border-primary-100 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-400 dark:bg-gray-700 dark:text-gray-100 mb-3" />
+            <label for="fullEditUrl" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">URL</label>
+            <input id="fullEditUrl" type="text" placeholder="https://…" class="block w-full px-3 py-2 border border-primary-100 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-400 dark:bg-gray-700 dark:text-gray-100 mb-3" />
+            <label for="fullEditDesc" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">描述</label>
+            <textarea id="fullEditDesc" rows="3" maxlength="1000" placeholder="写一句描述 / 备注，留空就是“暂无描述”" class="block w-full px-3 py-2 border border-primary-100 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-400 dark:bg-gray-700 dark:text-gray-100"></textarea>
+            <p class="text-xs text-gray-400 mt-2">保存后立即在当前页生效。需要管理员登录：没登录会提示你先去 /admin 登录。</p>
+            <div id="fullEditMessage" class="hidden rounded-lg border px-3 py-2 text-sm leading-relaxed mt-3"></div>
+            <div class="flex justify-end pt-4">
+              <button type="button" data-full-edit-close class="bg-white dark:bg-gray-700 py-2 px-4 border border-primary-100 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-primary-600 dark:text-primary-300 hover:bg-secondary-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-200 mr-3">取消</button>
+              <button type="button" id="fullEditSaveBtn" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-accent-500 hover:bg-accent-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent-400">保存</button>
+            </div>
+          </div>
+        </div>`;
+      document.body.appendChild(modal);
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal || (e.target.closest && e.target.closest('[data-full-edit-close]'))) closeFullEditModal();
+      });
+      modal.querySelector('#fullEditSaveBtn').addEventListener('click', saveFullEdit);
+      fullEditModal = modal;
+      return modal;
+    }
+
+    function showFullEditMessage(text, isError) {
+      const el = fullEditModal && fullEditModal.querySelector('#fullEditMessage');
+      if (!el) return;
+      el.classList.remove('hidden');
+      el.textContent = text;
+      el.className = 'rounded-lg border px-3 py-2 text-sm leading-relaxed mt-3 ' + (isError
+        ? 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-900/30 dark:text-red-300'
+        : 'border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-900/30 dark:text-green-300');
+    }
+
+    function openFullEditModal(siteId) {
+      const site = getSiteById(siteId);
+      if (!site) return;
+      fullEditingSite = site;
+      const modal = ensureFullEditModal();
+      modal.querySelector('#fullEditTitle').value = decodeHtmlEntities(site.nameHtml);
+      modal.querySelector('#fullEditUrl').value = decodeHtmlEntities(site.urlHtml);
+      const rawDesc = decodeHtmlEntities(site.descHtml);
+      modal.querySelector('#fullEditDesc').value = (site.hasDesc && rawDesc !== '暂无描述') ? rawDesc : '';
+      const msg = modal.querySelector('#fullEditMessage');
+      msg.classList.add('hidden');
+      msg.textContent = '';
+      modal.classList.remove('opacity-0', 'invisible');
+      const inner = modal.firstElementChild;
+      if (inner) inner.classList.remove('translate-y-8');
+      window.setTimeout(() => {
+        const titleInput = modal.querySelector('#fullEditTitle');
+        titleInput.focus();
+        titleInput.select();
+      }, 50);
+    }
+
+    function closeFullEditModal() {
+      if (!fullEditModal) return;
+      fullEditModal.classList.add('opacity-0', 'invisible');
+      const inner = fullEditModal.firstElementChild;
+      if (inner) inner.classList.add('translate-y-8');
+      fullEditingSite = null;
+    }
+
+    // 与服务端 sanitizeUrl 同口径：必须是能解析的 http/https 网址
+    function isValidHttpUrl(value) {
+      try {
+        const parsed = new URL(String(value).trim());
+        return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+      } catch {
+        return false;
+      }
+    }
+
+    async function saveFullEdit() {
+      if (!fullEditingSite || !fullEditModal) return;
+      const site = fullEditingSite;
+      const name = fullEditModal.querySelector('#fullEditTitle').value.trim();
+      const url = fullEditModal.querySelector('#fullEditUrl').value.trim();
+      const desc = fullEditModal.querySelector('#fullEditDesc').value.trim();
+      if (!name) { showFullEditMessage('标题不能为空', true); return; }
+      if (!url) { showFullEditMessage('URL 不能为空', true); return; }
+      if (!isValidHttpUrl(url)) { showFullEditMessage('URL 格式不对：请输入 http:// 或 https:// 开头的完整网址', true); return; }
+      if (desc.length > 1000) { showFullEditMessage('描述不能超过 1000 个字符', true); return; }
+      if (!site.catelog_id) { showFullEditMessage('这个书签没有分组信息，无法保存', true); return; }
+      const saveBtn = fullEditModal.querySelector('#fullEditSaveBtn');
+      saveBtn.disabled = true;
+      saveBtn.textContent = '保存中…';
+      try {
+        // PUT /api/config/:id 要求全量字段：只改标题/URL/描述，logo、分组、排序、私密用现值
+        const body = {
+          name,
+          url,
+          logo: decodeHtmlEntities(site.logoUrlHtml || ''),
+          desc,
+          catelog_id: site.catelog_id,
+          sort_order: Number.isFinite(Number(site.sort_order)) ? Number(site.sort_order) : 9999,
+          is_private: site.is_private ? 1 : 0,
+        };
+        const res = await apiFetch('/api/config/' + site.id, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json().catch(() => null);
+        if (!res.ok) {
+          showFullEditMessage('保存失败：' + ((data && data.message) || ('HTTP ' + res.status)), true);
+          return;
+        }
+        // 原地更新内存模型与卡片，不用刷新整页
+        site.nameHtml = escapeHtml(name);
+        site.urlHtml = escapeHtml(url);
+        site.displayUrlHtml = escapeHtml(url);
+        site.descHtml = escapeHtml(desc || '暂无描述');
+        site.hasDesc = Boolean(desc);
+        site.hasValidUrl = true;
+        const card = sitesGrid && sitesGrid.querySelector('.site-card[data-id="' + site.id + '"]');
+        if (card) {
+          const titleEl = card.querySelector('.site-title');
+          if (titleEl) { titleEl.textContent = name; titleEl.setAttribute('title', name); }
+          const linkEl = card.querySelector('.site-card-content > a');
+          if (linkEl) {
+            linkEl.setAttribute('href', url);
+            linkEl.setAttribute('target', '_blank');
+            linkEl.setAttribute('rel', 'noopener noreferrer');
+          }
+          const descEl = card.querySelector('.site-desc');
+          if (descEl) { descEl.textContent = desc || '暂无描述'; descEl.setAttribute('title', '点击编辑描述'); }
+          const copyBtn = card.querySelector('.copy-btn');
+          if (copyBtn) {
+            copyBtn.setAttribute('data-url', url);
+            copyBtn.removeAttribute('disabled');
+            (cardConfig.copyButtonDisabledClass || '').split(/\s+/).filter(Boolean).forEach((c) => copyBtn.classList.remove(c));
+            (cardConfig.copyButtonEnabledClass || '').split(/\s+/).filter(Boolean).forEach((c) => copyBtn.classList.add(c));
+            const urlSpan = copyBtn.parentElement && copyBtn.parentElement.querySelector('span');
+            if (urlSpan) { urlSpan.textContent = url; urlSpan.setAttribute('title', url); }
+          }
+        }
+        closeFullEditModal();
+      } catch (e) {
+        if (isNeedLoginError(e)) {
+          showFullEditMessage('还没登录管理员：请在新标签页打开 /admin 登录，再回来点保存。', true);
+          return;
+        }
+        showFullEditMessage('保存失败：' + (e.message || String(e)), true);
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = '保存';
+      }
+    }
+
     // ---- 右键菜单（桌面右键 / 移动端长按都会触发 contextmenu）----
     let contextMenuEl = null;
     let contextMenuSiteId = null;
@@ -603,7 +775,7 @@
         if (!site.hasValidUrl) { window.alert('这个书签没有有效链接，打不开。'); return; }
         window.open(url, '_blank', 'noopener');
       } else if (action === 'edit') {
-        openDescEditModal(siteId);
+        openFullEditModal(siteId);
       } else if (action === 'move') {
         openMoveSiteModal(siteId);
       } else if (action === 'delete') {
@@ -625,7 +797,7 @@
         }
       });
       document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') { closeContextMenu(); closeMoveSiteModal(); }
+        if (e.key === 'Escape') { closeContextMenu(); closeMoveSiteModal(); closeFullEditModal(); }
       });
       window.addEventListener('resize', closeContextMenu);
     }
