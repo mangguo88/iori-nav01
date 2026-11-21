@@ -18,6 +18,109 @@ let categoryPageSize = 10000; // Default show all for tree view structure
 let categoryTotalItems = 0;
 let currentViewParentId = null;
 
+// 批量删除分组：勾选的分组 id（跨页/跨层级保留，删完清空）
+const selectedCategoryIds = new Set();
+const batchDeleteCategoriesBtn = document.getElementById('batchDeleteCategoriesBtn');
+const categorySelectAllBtn = document.getElementById('categorySelectAllBtn');
+const categorySelectedCount = document.getElementById('categorySelectedCount');
+
+function updateCategorySelectionUI() {
+    const count = selectedCategoryIds.size;
+    if (categorySelectedCount) categorySelectedCount.textContent = count > 0 ? `已选 ${count} 个分组` : '';
+    if (batchDeleteCategoriesBtn) {
+        batchDeleteCategoriesBtn.disabled = count === 0;
+        batchDeleteCategoriesBtn.classList.toggle('opacity-50', count === 0);
+        batchDeleteCategoriesBtn.classList.toggle('cursor-not-allowed', count === 0);
+    }
+    document.querySelectorAll('#categoryGrid .category-select-checkbox').forEach((cb) => {
+        cb.checked = selectedCategoryIds.has(Number(cb.getAttribute('data-category-id')));
+    });
+    document.querySelectorAll('#categoryGrid .site-card').forEach((card) => {
+        const selected = selectedCategoryIds.has(Number(card.dataset.id));
+        card.classList.toggle('ring-2', selected);
+        card.classList.toggle('ring-red-400', selected);
+    });
+}
+
+// 算一下选中分组连子分组、书签一共要删多少，用在删除确认框里
+function computeDeletePreview(ids) {
+    const byId = new Map((window.categoriesData || []).map((c) => [Number(c.id), c]));
+    const uniqueIds = [...new Set(ids.map(Number))];
+    const seen = new Set();
+    const stack = [...uniqueIds];
+    let sites = 0;
+    while (stack.length) {
+        const id = stack.pop();
+        if (seen.has(id)) continue;
+        seen.add(id);
+        const cat = byId.get(id);
+        if (cat) sites += Number(cat.site_count || 0);
+        (window.categoriesData || []).filter((c) => Number(c.parent_id) === id).forEach((c) => stack.push(Number(c.id)));
+    }
+    return {
+        totalCategories: seen.size,
+        rootCount: uniqueIds.length,
+        subCount: seen.size - uniqueIds.length,
+        siteCount: sites,
+        names: uniqueIds.map((id) => byId.get(id)?.catelog || `分组 #${id}`),
+    };
+}
+
+function openBatchDeleteCategoriesModal(ids) {
+    const preview = computeDeletePreview(ids);
+    const modal = document.getElementById('deleteCategoryConfirmModal');
+    const textEl = document.getElementById('deleteCategoryConfirmText');
+    const warnEl = document.getElementById('deleteCategoryConfirmWarn');
+    const names = preview.names.slice(0, 5).join('、') + (preview.names.length > 5 ? ` 等 ${preview.names.length} 个分组` : '');
+    const confirmText = `确定要删除 ${names} 吗？共 ${preview.totalCategories} 个分组（含 ${preview.subCount} 个子分组）、${preview.siteCount} 个书签都会一起删掉，此操作无法撤销。`;
+    if (textEl) textEl.textContent = confirmText;
+    if (warnEl) warnEl.classList.remove('hidden');
+    if (!modal) {
+        if (confirm(confirmText)) deleteCategories(ids);
+        return;
+    }
+    const confirmBtn = document.getElementById('confirmDeleteCategoryBtn');
+    const cancelBtn = document.getElementById('cancelDeleteCategoryBtn');
+    const closeBtn = document.getElementById('closeDeleteCategoryConfirmModal');
+    const closeModal = () => {
+        modal.style.display = 'none';
+        document.body.classList.remove('modal-open');
+    };
+    // 使用 cloneNode 快速清除旧的 event listeners
+    const newConfirmBtn = confirmBtn.cloneNode(true);
+    confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+    newConfirmBtn.addEventListener('click', () => {
+        closeModal();
+        deleteCategories(ids);
+    });
+    cancelBtn.onclick = closeModal;
+    closeBtn.onclick = closeModal;
+    modal.onclick = (event) => {
+        if (event.target === modal) closeModal();
+    };
+    modal.style.display = 'block';
+    document.body.classList.add('modal-open');
+}
+
+function deleteCategories(ids) {
+    fetch('/api/categories/batch-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids }),
+    }).then(res => res.json()).then(data => {
+        if (data.code === 200) {
+            window.showMessage(data.message || '删除成功', 'success');
+            ids.forEach((id) => selectedCategoryIds.delete(Number(id)));
+            updateCategorySelectionUI();
+            fetchCategories();
+            if (typeof fetchConfigs === 'function') fetchConfigs();
+            if (typeof window.loadGlobalCategories === 'function') window.loadGlobalCategories();
+        } else {
+            window.showMessage(data.message || '删除失败', 'error');
+        }
+    }).catch((err) => window.showMessage('网络错误: ' + err.message, 'error'));
+}
+
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     initCategoryEvents();
@@ -67,6 +170,26 @@ function initCategoryEvents() {
                 modal.style.display = 'block';
                 document.body.classList.add('modal-open');
             }
+        });
+    }
+
+    // 批量删除分组：工具栏按钮
+    if (batchDeleteCategoriesBtn) {
+        batchDeleteCategoriesBtn.addEventListener('click', () => {
+            if (selectedCategoryIds.size === 0) return;
+            openBatchDeleteCategoriesModal([...selectedCategoryIds]);
+        });
+    }
+    if (categorySelectAllBtn) {
+        categorySelectAllBtn.addEventListener('click', () => {
+            const visibleIds = [...document.querySelectorAll('#categoryGrid .site-card')].map((c) => Number(c.dataset.id));
+            if (visibleIds.length === 0) return;
+            const allSelected = visibleIds.every((id) => selectedCategoryIds.has(id));
+            visibleIds.forEach((id) => {
+                if (allSelected) selectedCategoryIds.delete(id);
+                else selectedCategoryIds.add(id);
+            });
+            updateCategorySelectionUI();
         });
     }
 }
@@ -194,6 +317,7 @@ function renderCategoryCards(categories) {
         card.dataset.sort = item.sort_order;
 
         card.innerHTML = `
+            <input type="checkbox" class="category-select-checkbox absolute top-2 left-2 z-20 h-5 w-5 accent-red-600 cursor-pointer" data-category-id="${item.id}" title="勾选这个分组（可多选，批量删除）">
             <div class="absolute top-2 right-2 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
                 <button class="category-edit-btn p-1.5 bg-blue-100 text-blue-600 rounded-full hover:bg-blue-200 transition-colors" title="编辑" data-category-id="${item.id}">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -249,9 +373,22 @@ function renderCategoryCards(categories) {
 
     bindCategoryEvents();
     setupCategoryDragAndDrop();
+    updateCategorySelectionUI();
 }
 
 function bindCategoryEvents() {
+    document.querySelectorAll('.category-select-checkbox').forEach(cb => {
+        cb.addEventListener('click', function (e) {
+            e.stopPropagation();
+        });
+        cb.addEventListener('change', function () {
+            const categoryId = Number(this.getAttribute('data-category-id'));
+            if (this.checked) selectedCategoryIds.add(categoryId);
+            else selectedCategoryIds.delete(categoryId);
+            updateCategorySelectionUI();
+        });
+    });
+
     document.querySelectorAll('.category-edit-btn').forEach(btn => {
         btn.addEventListener('click', function (e) {
             e.stopPropagation();
@@ -280,53 +417,10 @@ function bindCategoryEvents() {
         btn.addEventListener('click', function (e) {
             e.stopPropagation();
             const category_id = this.getAttribute('data-category-id');
-            const siteCount = parseInt(this.getAttribute('data-site-count') || '0');
-            const subCount = parseInt(this.getAttribute('data-sub-count') || '0');
-            
-            if (siteCount > 0) {
-                window.showMessage(`无法删除：该分类包含 ${siteCount} 个书签`, 'error');
-                return;
-            }
-            if (subCount > 0) {
-                window.showMessage(`无法删除：该分类包含 ${subCount} 个子分类`, 'error');
-                return;
-            }
-            
             if (!category_id) return;
-            
-            // 使用自定义模态框而不是原生 confirm
-            const deleteModal = document.getElementById('deleteCategoryConfirmModal');
-            if (deleteModal) {
-                // 解绑旧事件（如果有）
-                const confirmBtn = document.getElementById('confirmDeleteCategoryBtn');
-                const cancelBtn = document.getElementById('cancelDeleteCategoryBtn');
-                const closeBtn = document.getElementById('closeDeleteCategoryConfirmModal');
-
-                const closeModal = () => {
-                     deleteModal.style.display = 'none';
-                     document.body.classList.remove('modal-open');
-                };
-                
-                // 使用 cloneNode 快速清除所有 event listeners
-                const newConfirmBtn = confirmBtn.cloneNode(true);
-                confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
-                
-                newConfirmBtn.addEventListener('click', () => {
-                     closeModal();
-                     deleteCategory(category_id);
-                });
-
-                cancelBtn.onclick = closeModal;
-                closeBtn.onclick = closeModal;
-                deleteModal.onclick = (event) => {
-                     if (event.target === deleteModal) closeModal();
-                };
-                
-                deleteModal.style.display = 'block';
-                document.body.classList.add('modal-open');
-            } else if (confirm('确定删除该分类吗？')) {
-                deleteCategory(category_id);
-            }
+            // 单个删除也走批量删除接口：带子分组和书签一起删，
+            // 确认框里会先算好一共删多少个分组、多少个书签
+            openBatchDeleteCategoriesModal([Number(category_id)]);
         });
     });
   
@@ -339,22 +433,10 @@ function bindCategoryEvents() {
     });
 }
 
+// 旧的单删入口：现在也走批量删除接口（带子分组和书签一起删）。
+// 后端 PUT /api/categories/:id + {reset:true} 只删空分组，仍保留给兼容用。
 function deleteCategory(id) {
-    fetch('/api/categories/' + encodeURIComponent(id), {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reset: true }) // Logical delete or reset
-    }).then(res => res.json()).then(data => {
-        if (data.code === 200) {
-            window.showMessage('删除成功', 'success');
-            // Refresh categories and also bookmarks configs because dropdowns/counts might change
-            fetchCategories();
-            if (typeof fetchConfigs === 'function') fetchConfigs();
-            if (typeof window.loadGlobalCategories === 'function') window.loadGlobalCategories();
-        } else {
-            window.showMessage(data.message || '删除失败', 'error');
-        }
-    });
+    deleteCategories([Number(id)]);
 }
 
 function setupCategoryDragAndDrop() {

@@ -250,8 +250,9 @@
         <span class="modal-close" id="closeDeleteCategoryConfirmModal">×</span>
         <h2>确认删除分类</h2>
         <div class="p-4">
-          <p class="text-gray-700 font-medium text-base mb-2">确定要删除该分类吗？</p>
+          <p id="deleteCategoryConfirmText" class="text-gray-700 font-medium text-base mb-2">确定要删除该分类吗？</p>
           <p class="text-gray-500 text-sm">此操作无法撤销，请谨慎操作。</p>
+          <p id="deleteCategoryConfirmWarn" class="text-amber-600 text-sm mt-2 hidden">注意：只删导航站里的数据，浏览器收藏夹里对应的收藏不会一起删；下次扩展点“立即同步全部书签”会把它们重新推回来。要彻底删，先在浏览器收藏夹里删掉对应文件夹。</p>
         </div>
         <div class="flex justify-end gap-3 mt-4">
           <button id="cancelDeleteCategoryBtn"
@@ -1568,6 +1569,13 @@
                 拖动卡片可调整排序
               </p>
             </div>
+            <div class="flex items-center gap-2">
+              <span id="categorySelectedCount" class="text-sm text-gray-600"></span>
+              <button id="categorySelectAllBtn"
+                class="text-sm text-gray-600 hover:text-primary-600 bg-white border border-gray-300 px-3 py-1 rounded shadow-sm transition-colors">全选当前页</button>
+              <button id="batchDeleteCategoriesBtn" disabled
+                class="text-sm text-white bg-red-600 hover:bg-red-700 px-3 py-1 rounded shadow-sm transition-colors opacity-50 cursor-not-allowed">批量删除分组</button>
+            </div>
           </div>
           <div id="categoryGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
             <!-- data render by js -->
@@ -1777,7 +1785,7 @@
   <script src="/js/admin-tabs.js?v=a52bd6f3"></script>
   <script src="/js/admin-bookmark-privacy.js?v=306f5fdb"></script>
   <script src="/js/admin.js?v=39f7ce60"></script>
-  <script src="/js/admin-categories.js?v=aa436f47"></script>
+  <script src="/js/admin-categories.js?v=33c60db4"></script>
   <script src="/js/admin-bookmarks.js?v=050f96b1"></script>
   <script src="/js/admin-batch.js?v=db576dfe"></script>
   <script src="/js/wallpaper-defaults.js?v=b65f42d1"></script>
