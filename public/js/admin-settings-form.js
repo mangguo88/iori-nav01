@@ -29,6 +29,8 @@
       frostedGlassSwitch: document.getElementById('frostedGlassSwitch'),
       frostedGlassIntensityRange: document.getElementById('frostedGlassIntensity'),
       frostedGlassIntensityValue: document.getElementById('frostedGlassIntensityValue'),
+      cardBgOpacityRange: document.getElementById('cardBgOpacity'),
+      cardBgOpacityValue: document.getElementById('cardBgOpacityValue'),
       gridColsRadios: document.getElementsByName('gridCols'),
       categoryPositionRadios: document.getElementsByName('categoryPosition'),
       categoryFlowRadios: document.getElementsByName('categoryFlow'),
@@ -82,6 +84,8 @@
       mobileFrostedGlassSwitch: document.getElementById('mobileFrostedGlassSwitch'),
       mobileFrostedGlassIntensityRange: document.getElementById('mobileFrostedGlassIntensity'),
       mobileFrostedGlassIntensityValue: document.getElementById('mobileFrostedGlassIntensityValue'),
+      mobileCardBgOpacityRange: document.getElementById('mobileCardBgOpacity'),
+      mobileCardBgOpacityValue: document.getElementById('mobileCardBgOpacityValue'),
       mobileGridColsRadios: document.getElementsByName('mobileGridCols'),
       mobileCardAnimationSelect: document.getElementById('mobileCardAnimationSelect'),
       mobileCardRadiusInput: document.getElementById('mobileCardRadius'),
@@ -137,6 +141,16 @@
   function setRangeValue(rangeInput, valueLabel, value) {
     if (rangeInput) rangeInput.value = value;
     if (valueLabel) valueLabel.textContent = value;
+  }
+
+  // 滑块拖动时实时更新旁边显示的数字（毛玻璃那几项在 core.js 里绑，这里同理；
+  // updateUIFromSettings 会被多次调用，用 dataset 标记只绑一次）
+  function bindRangeLiveLabel(rangeInput, valueLabel) {
+    if (!rangeInput || !valueLabel || rangeInput.dataset.liveLabelBound) return;
+    rangeInput.dataset.liveLabelBound = '1';
+    rangeInput.addEventListener('input', () => {
+      valueLabel.textContent = rangeInput.value;
+    });
   }
 
   function setRadioValue(radios, value) {
@@ -305,6 +319,7 @@
 
     currentSettings.layout_enable_frosted_glass = !!refs.frostedGlassSwitch?.checked;
     currentSettings.layout_frosted_glass_intensity = refs.frostedGlassIntensityRange?.value || '15';
+    currentSettings.layout_card_bg_opacity = refs.cardBgOpacityRange?.value || '100';
     currentSettings.layout_card_style = document.querySelector('#desktopCardSettingsPanel .card-style-btn.active')?.dataset.style || 'style1';
     currentSettings.layout_card_animation = refs.cardAnimationSelect?.value || 'radial';
     currentSettings.layout_card_border_radius = refs.cardRadiusInput?.value || '12';
@@ -320,6 +335,7 @@
     currentSettings.mobile_layout_hide_category = !!refs.mobileHideCategorySwitch?.checked;
     currentSettings.mobile_layout_enable_frosted_glass = !!refs.mobileFrostedGlassSwitch?.checked;
     currentSettings.mobile_layout_frosted_glass_intensity = refs.mobileFrostedGlassIntensityRange?.value || '15';
+    currentSettings.mobile_layout_card_bg_opacity = refs.mobileCardBgOpacityRange?.value || '100';
     for (const radio of refs.mobileGridColsRadios || []) {
       if (radio.checked) {
         currentSettings.mobile_layout_grid_cols = radio.value;
@@ -437,6 +453,8 @@
     setChecked(refs.searchEngineSwitch, currentSettings.home_search_engine_enabled);
     setChecked(refs.frostedGlassSwitch, currentSettings.layout_enable_frosted_glass);
     setRangeValue(refs.frostedGlassIntensityRange, refs.frostedGlassIntensityValue, currentSettings.layout_frosted_glass_intensity || '15');
+    setRangeValue(refs.cardBgOpacityRange, refs.cardBgOpacityValue, currentSettings.layout_card_bg_opacity || '100');
+    bindRangeLiveLabel(refs.cardBgOpacityRange, refs.cardBgOpacityValue);
     updateToggleContainer(refs.frostedGlassSwitch, 'frostedGlassIntensityContainer');
     setValue(refs.customWallpaperInput, currentSettings.layout_custom_wallpaper || '');
     if (refs.customWallpaperInput && !String(currentSettings.layout_custom_wallpaper || '').trim()) {
@@ -473,6 +491,8 @@
     setChecked(refs.mobileHideCategorySwitch, currentSettings.mobile_layout_hide_category);
     setChecked(refs.mobileFrostedGlassSwitch, currentSettings.mobile_layout_enable_frosted_glass);
     setRangeValue(refs.mobileFrostedGlassIntensityRange, refs.mobileFrostedGlassIntensityValue, currentSettings.mobile_layout_frosted_glass_intensity || '15');
+    setRangeValue(refs.mobileCardBgOpacityRange, refs.mobileCardBgOpacityValue, currentSettings.mobile_layout_card_bg_opacity || '100');
+    bindRangeLiveLabel(refs.mobileCardBgOpacityRange, refs.mobileCardBgOpacityValue);
     updateToggleContainer(refs.mobileFrostedGlassSwitch, 'mobileFrostedGlassIntensityContainer');
     setRadioValue(refs.mobileGridColsRadios, currentSettings.mobile_layout_grid_cols || '3');
     setValue(refs.mobileCardAnimationSelect, currentSettings.mobile_layout_card_animation || 'radial');

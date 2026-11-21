@@ -18,6 +18,22 @@ let categoryPageSize = 10000; // Default show all for tree view structure
 let categoryTotalItems = 0;
 let currentViewParentId = null;
 
+// 取 CSRF token：先读 /admin 页注入的 meta，没有再调 GET /api/csrf-token，拿到后缓存
+let cachedCsrfToken = null;
+async function getCsrfToken() {
+    if (cachedCsrfToken) return cachedCsrfToken;
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    const metaToken = meta && meta.getAttribute('content');
+    if (metaToken) { cachedCsrfToken = metaToken; return cachedCsrfToken; }
+    try {
+        const res = await fetch('/api/csrf-token', { credentials: 'same-origin' });
+        if (!res.ok) return null;
+        const data = await res.json();
+        if (data && data.csrfToken) { cachedCsrfToken = data.csrfToken; return cachedCsrfToken; }
+    } catch (e) { /* 拿不到就返回 null，由调用方提示登录 */ }
+    return null;
+}
+
 // 批量删除分组：勾选的分组 id（跨页/跨层级保留，删完清空）
 const selectedCategoryIds = new Set();
 const batchDeleteCategoriesBtn = document.getElementById('batchDeleteCategoriesBtn');
@@ -102,23 +118,41 @@ function openBatchDeleteCategoriesModal(ids) {
     document.body.classList.add('modal-open');
 }
 
-function deleteCategories(ids) {
-    fetch('/api/categories/batch-delete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ids }),
-    }).then(res => res.json()).then(data => {
-        if (data.code === 200) {
-            window.showMessage(data.message || '删除成功', 'success');
-            ids.forEach((id) => selectedCategoryIds.delete(Number(id)));
-            updateCategorySelectionUI();
-            fetchCategories();
-            if (typeof fetchConfigs === 'function') fetchConfigs();
-            if (typeof window.loadGlobalCategories === 'function') window.loadGlobalCategories();
-        } else {
-            window.showMessage(data.message || '删除失败', 'error');
-        }
-    }).catch((err) => window.showMessage('网络错误: ' + err.message, 'error'));
+async function deleteCategories(ids) {
+    const csrfToken = await getCsrfToken();
+    if (!csrfToken) {
+        window.showMessage('登录已过期，请刷新页面重新登录后再删除', 'error');
+        return;
+    }
+    let res;
+    try {
+        res = await fetch('/api/categories/batch-delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+            credentials: 'same-origin',
+            body: JSON.stringify({ ids }),
+        });
+    } catch (err) {
+        window.showMessage('网络错误: ' + err.message, 'error');
+        return;
+    }
+    let data = null;
+    try { data = await res.json(); } catch { /* 非 JSON 按失败处理 */ }
+    if (res.status === 401) {
+        cachedCsrfToken = null;
+        window.showMessage('登录已过期，请刷新页面重新登录后再删除', 'error');
+        return;
+    }
+    if (data && data.code === 200) {
+        window.showMessage(data.message || '删除成功', 'success');
+        ids.forEach((id) => selectedCategoryIds.delete(Number(id)));
+        updateCategorySelectionUI();
+        fetchCategories();
+        if (typeof fetchConfigs === 'function') fetchConfigs();
+        if (typeof window.loadGlobalCategories === 'function') window.loadGlobalCategories();
+    } else {
+        window.showMessage((data && data.message) || '删除失败', 'error');
+    }
 }
 
 // Initialize

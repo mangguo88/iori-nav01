@@ -16,6 +16,22 @@
   let currentSearchKeyword = '';
   let currentCategoryFilter = '';
 
+  // 取 CSRF token：先读 /admin 页注入的 meta，没有再调 GET /api/csrf-token，拿到后缓存
+  let cachedCsrfToken = null;
+  async function getCsrfToken() {
+    if (cachedCsrfToken) return cachedCsrfToken;
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    const metaToken = meta && meta.getAttribute('content');
+    if (metaToken) { cachedCsrfToken = metaToken; return cachedCsrfToken; }
+    try {
+      const res = await fetch('/api/csrf-token', { credentials: 'same-origin' });
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (data && data.csrfToken) { cachedCsrfToken = data.csrfToken; return cachedCsrfToken; }
+    } catch (e) { /* 拿不到就返回 null，由调用方提示登录 */ }
+    return null;
+  }
+
   function getSearchValue() {
     if (!searchInput) return;
     if (searchInput.isContentEditable) {
@@ -289,23 +305,36 @@
     }
   };
 
-  window.performDelete = function (id) {
-    fetch(`/api/config/${id}`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' }
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.code === 200) {
-          window.showMessage('删除成功', 'success', data.cacheCleared);
-          fetchConfigs();
-          return;
-        }
-        window.showMessage(data.message || '删除失败', 'error');
-      })
-      .catch(() => {
-        window.showMessage('网络错误', 'error');
+  window.performDelete = async function (id) {
+    const csrfToken = await getCsrfToken();
+    if (!csrfToken) {
+      window.showMessage('登录已过期，请刷新页面重新登录后再删除', 'error');
+      return;
+    }
+    let res;
+    try {
+      res = await fetch(`/api/config/${id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+        credentials: 'same-origin',
       });
+    } catch (e) {
+      window.showMessage('网络错误', 'error');
+      return;
+    }
+    let data = null;
+    try { data = await res.json(); } catch { /* 非 JSON 按失败处理 */ }
+    if (res.status === 401) {
+      cachedCsrfToken = null;
+      window.showMessage('登录已过期，请刷新页面重新登录后再删除', 'error');
+      return;
+    }
+    if (data && data.code === 200) {
+      window.showMessage('删除成功', 'success', data.cacheCleared);
+      fetchConfigs();
+      return;
+    }
+    window.showMessage((data && data.message) || '删除失败', 'error');
   };
 
   function setupDragAndDrop() {
@@ -357,7 +386,7 @@
     });
   }
 
-  function saveSortOrder() {
+  async function saveSortOrder() {
     const cards = document.querySelectorAll('#configGrid .site-card');
     const startIndex = (currentPage - 1) * pageSize;
     const items = [];
@@ -371,31 +400,47 @@
 
     if (items.length === 0) return;
 
-    window.showMessage('正在保存排序...', 'info');
-    fetch('/api/config/batch', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'reorder',
-        payload: { items }
-      })
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.code !== 200) {
-          window.showMessage(data.message || '保存排序失败', 'error');
-          return;
-        }
+    const csrfToken = await getCsrfToken();
+    if (!csrfToken) {
+      window.showMessage('登录已过期，请刷新页面重新登录后再排序', 'error');
+      return;
+    }
 
-        window.showMessage('排序已保存', 'success');
-        cards.forEach((card, index) => {
-          const config = allConfigs.find(c => c.id == card.dataset.id);
-          if (config) {
-            config.sort_order = startIndex + index;
-          }
-        });
-      })
-      .catch(err => window.showMessage('保存排序失败: ' + err.message, 'error'));
+    window.showMessage('正在保存排序...', 'info');
+    let res;
+    try {
+      res = await fetch('/api/config/batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+          action: 'reorder',
+          payload: { items }
+        })
+      });
+    } catch (err) {
+      window.showMessage('保存排序失败: ' + err.message, 'error');
+      return;
+    }
+    let data = null;
+    try { data = await res.json(); } catch { /* 非 JSON 按失败处理 */ }
+    if (res.status === 401) {
+      cachedCsrfToken = null;
+      window.showMessage('登录已过期，请刷新页面重新登录后再排序', 'error');
+      return;
+    }
+    if (!data || data.code !== 200) {
+      window.showMessage((data && data.message) || '保存排序失败', 'error');
+      return;
+    }
+
+    window.showMessage('排序已保存', 'success');
+    cards.forEach((card, index) => {
+      const config = allConfigs.find(c => c.id == card.dataset.id);
+      if (config) {
+        config.sort_order = startIndex + index;
+      }
+    });
   }
 
   function bindSearchAndPagination() {

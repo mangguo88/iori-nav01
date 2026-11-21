@@ -114,6 +114,10 @@ export function buildCardViewModel(site) {
     cardInitialHtml: escapeHTML((rawName.trim().charAt(0) || '站').toUpperCase()),
     hasValidUrl: Boolean(normalizedUrl),
     hasDesc: Boolean(site?.desc),
+    // 移动分组（PUT /api/config/:id）要传全量字段：sort_order、is_private
+    // 由 functions/index.js 的 sitesQuery 查出来，不在库里就回落默认值
+    sort_order: Number.isFinite(Number(site?.sort_order)) ? Number(site.sort_order) : 9999,
+    is_private: site?.is_private ? 1 : 0,
   };
 }
 

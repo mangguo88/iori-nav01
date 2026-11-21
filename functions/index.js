@@ -42,6 +42,14 @@ function normalizeCssPixelValue(value, fallback) {
   return normalized;
 }
 
+// 透明度设置是 0–100 的整数字符串，转成 CSS 用的 0–1；非法值回落 fallback（默认 1 不透明）
+function normalizeOpacityValue(value, fallback) {
+  const num = Number(String(value ?? '').trim());
+  if (!Number.isFinite(num)) return String(fallback);
+  const clamped = Math.min(100, Math.max(0, Math.round(num)));
+  return String(clamped / 100);
+}
+
 export async function onRequest(context) {
   const { request, env } = context;
 
@@ -121,8 +129,9 @@ export async function onRequest(context) {
 
   const settingsKeys = getSettingsKeys();
   const settingsPlaceholders = settingsKeys.map(() => '?').join(',');
-  // sort_order 仅用于 ORDER BY，不参与 SELECT（SQLite 允许）；前端不使用该字段
-  const sitesQuery = `SELECT id, name, url, logo, desc, catelog_id, catelog_name
+  // sort_order、is_private 也要 SELECT 出来：前端移动分组（PUT /api/config/:id）
+  // 与拖动排序要用到这两个字段；原来只用于 ORDER BY、不进 SELECT，前端拿不到
+  const sitesQuery = `SELECT id, name, url, logo, desc, catelog_id, catelog_name, sort_order, is_private
                       FROM sites WHERE (is_private = 0 OR ? = 1) ORDER BY sort_order ASC, create_time DESC`;
 
   // Settings 缓存：优先从 KV 读取，减少数据库查询
@@ -446,7 +455,9 @@ export async function onRequest(context) {
   const mobileCardRadius = normalizeCssPixelValue(S.mobile_layout_card_border_radius, cardRadius);
   const frostedBlur = normalizeCssPixelValue(S.layout_frosted_glass_intensity, 15);
   const mobileFrostedBlur = normalizeCssPixelValue(S.mobile_layout_frosted_glass_intensity, frostedBlur);
-  headInjections += `<style>:root { --card-padding: 1.25rem; --card-radius: ${cardRadius}px; --frosted-glass-blur: ${frostedBlur}px; }@media (max-width: 767px) { :root { --card-radius: ${mobileCardRadius}px; --frosted-glass-blur: ${mobileFrostedBlur}px; } }</style>`;
+  const cardBgOpacity = normalizeOpacityValue(S.layout_card_bg_opacity, 1);
+  const mobileCardBgOpacity = normalizeOpacityValue(S.mobile_layout_card_bg_opacity, cardBgOpacity);
+  headInjections += `<style>:root { --card-padding: 1.25rem; --card-radius: ${cardRadius}px; --frosted-glass-blur: ${frostedBlur}px; --card-bg-opacity: ${cardBgOpacity}; }@media (max-width: 767px) { :root { --card-radius: ${mobileCardRadius}px; --frosted-glass-blur: ${mobileFrostedBlur}px; --card-bg-opacity: ${mobileCardBgOpacity}; } }</style>`;
 
   // 自定义字体
   const usedFonts = new Set();

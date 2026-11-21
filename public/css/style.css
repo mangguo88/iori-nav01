@@ -3,6 +3,7 @@
   --card-padding: 1.25rem; /* 20px, default p-5 */
   --card-radius: 0.75rem;  /* 12px, default rounded-xl */
   --frosted-glass-blur: 15px; /* Default blur */
+  --card-bg-opacity: 1; /* 卡片背景透明度 0–1，首页 :root 注入会覆盖；非法值回落 1 */
 }
 
 .home-title-block:empty {
@@ -185,10 +186,81 @@ html.dark body.custom-wallpaper .sidebar {
 
 .site-card:hover {
   will-change: transform;
-  transform: scale(1.05) translateY(-4px);
+  transform: scale(1.06) translateY(-4px);
   box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
   z-index: 30;
   border: 2px solid #416d9d !important;
+}
+
+/* 悬停放大时显示全部内容：标题取消 truncate 截断、描述取消 line-clamp-2
+   与固定 2.85rem 高度。风格三是 85px 固定高紧凑导航块，展开会撑坏布局，不放开。
+   进场动画用 animation 的 transform，动画结束后 class 被清理，hover 规则随即生效，两者不冲突。 */
+.site-card:not(.style-3):hover .site-title {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
+.site-card:not(.style-3):hover .site-desc,
+.site-card:not(.style-3):hover .site-card-content p {
+  height: auto;
+  display: block;
+  -webkit-line-clamp: unset;
+  overflow: visible;
+}
+
+/* 卡片背景透明度（--card-bg-opacity，首页 :root 注入 0–1）：
+   非毛玻璃直接用变量做 alpha；毛玻璃在现有半透明基础上再乘变量。 */
+.site-card:not(.frosted-glass-effect) {
+  background-color: rgba(255, 255, 255, var(--card-bg-opacity, 1)) !important;
+}
+.dark .site-card:not(.frosted-glass-effect) {
+  background-color: rgba(31, 41, 55, var(--card-bg-opacity, 1)) !important;
+}
+
+/* 风格三实底色的透明度在风格三那节里覆盖（同选择器、后出现才生效，见下） */
+
+/* 首页右键菜单（home-cards.js 生成；不用 Tailwind，预编译的 tailwind.min.css 里没有这些 class） */
+#homeContextMenu {
+  position: fixed;
+  z-index: 100;
+  min-width: 190px;
+  padding: 6px 0;
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+}
+#homeContextMenu button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  text-align: left;
+  font-size: 14px;
+  line-height: 1.4;
+  color: #374151;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+#homeContextMenu button:hover { background: #f3f4f6; }
+#homeContextMenu button.danger { color: #dc2626; }
+#homeContextMenu button.danger:hover { background: #fef2f2; }
+#homeContextMenu button:disabled { opacity: 0.4; cursor: not-allowed; }
+#homeContextMenu button svg { flex-shrink: 0; }
+.dark #homeContextMenu { background: #1f2937; border-color: rgba(255, 255, 255, 0.1); }
+.dark #homeContextMenu button { color: #e5e7eb; }
+.dark #homeContextMenu button:hover { background: #374151; }
+.dark #homeContextMenu button.danger { color: #f87171; }
+.dark #homeContextMenu button.danger:hover { background: rgba(127, 29, 29, 0.25); }
+
+/* 拖动排序时目标位置的描边提示（home-cards.js 拖拽用） */
+.site-card.drag-over-target {
+  box-shadow: 0 0 0 2px #416d9d !important;
+}
+.site-card.dragging {
+  opacity: 0.5;
 }
 
 .site-card-content {
@@ -216,7 +288,7 @@ html.dark body.custom-wallpaper .sidebar {
 
 /* 夜间模式卡片 - 仅在开启毛玻璃时应用半透明 */
 .dark .site-card.frosted-glass-effect {
-    background-color: rgba(30, 41, 59, 0.4) !important;
+    background-color: rgba(30, 41, 59, calc(0.4 * var(--card-bg-opacity, 1))) !important;
     backdrop-filter: blur(var(--frosted-glass-blur, 15px));
     -webkit-backdrop-filter: blur(var(--frosted-glass-blur, 15px));
     border: 1px solid rgba(255, 255, 255, 0.08) !important;
@@ -605,9 +677,17 @@ html.dark .site-card.style-3:not(.frosted-glass-effect):hover {
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
 }
 
+/* 风格三实底色也跟卡片背景透明度走（与上面同选择器、后出现才生效） */
+.site-card.style-3:not(.frosted-glass-effect) {
+  background-color: rgba(255, 255, 255, var(--card-bg-opacity, 1)) !important;
+}
+html.dark .site-card.style-3:not(.frosted-glass-effect) {
+  background-color: rgba(31, 41, 55, var(--card-bg-opacity, 1)) !important;
+}
+
 /* 开启毛玻璃：玻璃导航块 */
 .site-card.style-3.frosted-glass-effect {
-  background-color: rgba(255, 255, 255, 0.15) !important;
+  background-color: rgba(255, 255, 255, calc(0.15 * var(--card-bg-opacity, 1))) !important;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   color: rgba(255, 255, 255, 0.96);
@@ -616,31 +696,31 @@ html.dark .site-card.style-3:not(.frosted-glass-effect):hover {
 }
 
 body:not(.custom-wallpaper) .site-card.style-3.frosted-glass-effect {
-  background-color: rgba(30, 41, 59, 0.88) !important;
+  background-color: rgba(30, 41, 59, calc(0.88 * var(--card-bg-opacity, 1))) !important;
   border-color: rgba(255, 255, 255, 0.12) !important;
 }
 
 .site-card.style-3.frosted-glass-effect:hover {
-  background-color: rgba(255, 255, 255, 0.3) !important;
+  background-color: rgba(255, 255, 255, calc(0.3 * var(--card-bg-opacity, 1))) !important;
   border: 1px solid rgba(255, 255, 255, 0.2) !important;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
   transform: translateY(-2px);
 }
 
 body:not(.custom-wallpaper) .site-card.style-3.frosted-glass-effect:hover {
-  background-color: rgba(30, 41, 59, 0.96) !important;
+  background-color: rgba(30, 41, 59, calc(0.96 * var(--card-bg-opacity, 1))) !important;
 }
 
 body.custom-wallpaper .site-card.style-3.frosted-glass-effect,
 html.dark body.custom-wallpaper .site-card.style-3.frosted-glass-effect {
-  background-color: rgba(255, 255, 255, 0.15) !important;
+  background-color: rgba(255, 255, 255, calc(0.15 * var(--card-bg-opacity, 1))) !important;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
 }
 
 body.custom-wallpaper .site-card.style-3.frosted-glass-effect:hover,
 html.dark body.custom-wallpaper .site-card.style-3.frosted-glass-effect:hover {
-  background-color: rgba(255, 255, 255, 0.3) !important;
+  background-color: rgba(255, 255, 255, calc(0.3 * var(--card-bg-opacity, 1))) !important;
   border-color: rgba(255, 255, 255, 0.2) !important;
   box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15) !important;
 }
@@ -1703,7 +1783,7 @@ body .search-engine-option.active {
 
 /* 毛玻璃效果 - Light Mode */
 .frosted-glass-effect {
-  background: rgba(255, 255, 255, 0.4) !important;
+  background: rgba(255, 255, 255, calc(0.4 * var(--card-bg-opacity, 1))) !important;
   backdrop-filter: blur(var(--frosted-glass-blur, 15px)) !important;
   -webkit-backdrop-filter: blur(var(--frosted-glass-blur, 15px)) !important;
   border: 1px solid rgba(255, 255, 255, 0.6) !important;
@@ -1711,7 +1791,7 @@ body .search-engine-option.active {
 }
 
 .frosted-glass-effect:hover {
-  background: rgba(255, 255, 255, 0.6) !important;
+  background: rgba(255, 255, 255, calc(0.6 * var(--card-bg-opacity, 1))) !important;
   box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15) !important;
   border: 1px solid rgba(255, 255, 255, 0.9) !important;
 }

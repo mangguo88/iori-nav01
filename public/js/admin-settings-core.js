@@ -7,6 +7,23 @@
     return ns.form?.getRefs?.() || {};
   }
 
+  // 取 CSRF token：先读 /admin 页注入的 meta，没有再调 GET /api/csrf-token，拿到后缓存。
+  // POST /api/settings 也过全局 CSRF 校验，不带 token 会 403，设置保存不了。
+  let cachedCsrfToken = null;
+  async function getCsrfToken() {
+    if (cachedCsrfToken) return cachedCsrfToken;
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    const metaToken = meta && meta.getAttribute('content');
+    if (metaToken) { cachedCsrfToken = metaToken; return cachedCsrfToken; }
+    try {
+      const res = await fetch('/api/csrf-token', { credentials: 'same-origin' });
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (data && data.csrfToken) { cachedCsrfToken = data.csrfToken; return cachedCsrfToken; }
+    } catch (e) { /* 拿不到就返回 null，由调用方提示登录 */ }
+    return null;
+  }
+
   async function loadSettings() {
     const refs = getRefs();
     await ns.form?.loadCategoryOptions?.(refs.homeDefaultCategorySelect);
@@ -37,12 +54,25 @@
       refs.saveBtn.disabled = true;
       refs.saveBtn.innerHTML = '<span>⏳</span> 保存中...';
 
+      const csrfToken = await getCsrfToken();
+      if (!csrfToken) {
+        window.showMessage('登录已过期，请刷新页面重新登录后再保存', 'error');
+        return;
+      }
+
       const res = await fetch('/api/settings', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+        credentials: 'same-origin',
         body: JSON.stringify(currentSettings),
       });
       const data = await res.json();
+
+      if (res.status === 401) {
+        cachedCsrfToken = null;
+        window.showMessage('登录已过期，请刷新页面重新登录后再保存', 'error');
+        return;
+      }
 
       if (data.code === 200) {
         window.showMessage('设置已保存', 'success');

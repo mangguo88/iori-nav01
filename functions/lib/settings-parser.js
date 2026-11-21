@@ -47,6 +47,7 @@ export const SETTINGS_SCHEMA = {
     layout_card_style: { default: 'style1', type: 'string' },
     layout_card_animation: { default: 'radial', type: 'string' },
     layout_card_border_radius: { default: '12', type: 'string' },
+    layout_card_bg_opacity: { default: '100', type: 'string' },
     mobile_layout_hide_desc: { default: true, type: 'bool' },
     mobile_layout_hide_links: { default: true, type: 'bool' },
     mobile_layout_hide_category: { default: false, type: 'bool' },
@@ -56,6 +57,7 @@ export const SETTINGS_SCHEMA = {
     mobile_layout_card_style: { default: 'style2', type: 'string' },
     mobile_layout_card_animation: { default: 'radial', type: 'string' },
     mobile_layout_card_border_radius: { default: '12', type: 'string' },
+    mobile_layout_card_bg_opacity: { default: '100', type: 'string' },
     mobile_card_title_font: { default: '', type: 'string' },
     mobile_card_title_size: { default: '13', type: 'string' },
     mobile_card_title_color: { default: '', type: 'string' },
@@ -265,6 +267,11 @@ export function normalizeSettingValueForStorage(key, value) {
         return normalized === null ? { ok: false, message: `Invalid ${key}` } : { ok: true, value: normalized };
     }
 
+    if (key === 'layout_card_bg_opacity' || key === 'mobile_layout_card_bg_opacity') {
+        const normalized = normalizeIntegerRange(text, 0, 100, '100');
+        return normalized === null ? { ok: false, message: `Invalid ${key}` } : { ok: true, value: normalized };
+    }
+
     if (key === 'wallpaper_cid_360' && text && !/^\d{1,8}$/.test(text)) {
         return { ok: false, message: 'Invalid wallpaper_cid_360' };
     }
@@ -330,6 +337,7 @@ export function parseSettings(dbResults) {
         ['mobile_layout_frosted_glass_intensity', 'layout_frosted_glass_intensity'],
         ['mobile_layout_card_animation', 'layout_card_animation'],
         ['mobile_layout_card_border_radius', 'layout_card_border_radius'],
+        ['mobile_layout_card_bg_opacity', 'layout_card_bg_opacity'],
         ['mobile_card_title_font', 'card_title_font'],
         ['mobile_card_title_color', 'card_title_color'],
         ['mobile_card_desc_font', 'card_desc_font'],
