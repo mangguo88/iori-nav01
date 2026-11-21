@@ -70,10 +70,19 @@ export function buildCardTemplateConfig(settings = {}, device = 'desktop') {
   };
 }
 
+// 旧数据里存的是 favicon.im 的图标链接，它在部分网络下 403/打不开，图标全碎。
+// 渲染时统一改写成 faviconsnap（项目默认的图标服务），已入库的旧链接不用改库就能恢复。
+function normalizeLogoUrl(logo) {
+  if (!logo) return logo;
+  const m = String(logo).match(/^https?:\/\/(?:a\.)?favicon\.im\/([^/?#]+)/i);
+  if (!m) return logo;
+  return `https://faviconsnap.com/api/favicon?url=https://${m[1]}`;
+}
+
 export function buildCardViewModel(site) {
   const rawName = site?.name || '未命名';
   const normalizedUrl = sanitizeUrl(site?.url);
-  const normalizedLogo = sanitizeUrl(site?.logo);
+  const normalizedLogo = normalizeLogoUrl(sanitizeUrl(site?.logo));
   const rawCatalog = site?.catelog_name || site?.catelog || '未分类';
   const rawDesc = site?.desc || '暂无描述';
 

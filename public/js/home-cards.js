@@ -265,11 +265,12 @@
       sites.forEach((site, index) => {
         const isAboveFold = index < (cardConfig.aboveFoldImageCount || 8);
         const imgLoadingAttrs = isAboveFold ? 'fetchpriority="high" decoding="async"' : 'loading="lazy" decoding="async"';
-        const logoHtml = site.logoUrlHtml
-          ? `<img src="${site.logoUrlHtml}" alt="${site.nameHtml}" width="40" height="40" class="${cardConfig.logoClass}" ${imgLoadingAttrs}>`
-          : `<div class="w-10 h-10 rounded-lg bg-primary-600 flex items-center justify-center text-white font-semibold text-lg shadow-inner">${site.cardInitialHtml}</div>`;
+        const logoHtml = (site.logoUrlHtml
+          ? `<img src="${site.logoUrlHtml}" alt="${site.nameHtml}" width="40" height="40" class="${cardConfig.logoClass}" ${imgLoadingAttrs} onerror="this.style.display='none';var f=this.parentElement.querySelector('.site-logo-fallback');if(f){f.style.display='flex';}">`
+          : '')
+          + `<div class="site-logo-fallback w-10 h-10 rounded-lg bg-primary-600 flex items-center justify-center text-white font-semibold text-lg shadow-inner" style="${site.logoUrlHtml ? 'display:none;' : ''}">${site.cardInitialHtml}</div>`;
 
-        const descHtml = cardConfig.hideDesc ? '' : `<p class="${cardConfig.descClass}" title="${site.descHtml}">${site.descHtml}</p>`;
+        const descHtml = cardConfig.hideDesc ? '' : `<p class="${cardConfig.descClass} site-desc cursor-pointer hover:text-primary-600 dark:hover:text-primary-300" data-site-id="${site.id}" title="点击编辑描述">${site.descHtml}</p>`;
 
         const linksHtml = cardConfig.hideLinks ? '' : `
           <div class="${cardConfig.linkRowClass}">
@@ -315,7 +316,160 @@
       });
     }
 
+    // ---- 点击描述栏，在当前窗口弹编辑弹窗 ----
+    // 描述在 <a> 链接里面，点它默认会跳去目标站，所以用捕获阶段拦截：
+    // 点到 .site-desc 就阻止跳转、打开弹窗；点卡片其它地方照常打开网站。
+    let descEditModal = null;
+    let descEditingSite = null;
+
+    function decodeHtmlEntities(text) {
+      const t = document.createElement('textarea');
+      t.innerHTML = text || '';
+      return t.value;
+    }
+
+    function escapeHtml(text) {
+      return String(text ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function ensureDescEditModal() {
+      if (descEditModal) return descEditModal;
+      const modal = document.createElement('div');
+      modal.id = 'descEditModal';
+      modal.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 opacity-0 invisible transition-all duration-300';
+      modal.innerHTML = `
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md mx-4 transform translate-y-8 transition-all duration-300">
+          <div class="p-6">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100">编辑描述</h2>
+              <button type="button" data-desc-edit-close class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
+                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">正在编辑：<span id="descEditSiteName" class="font-medium text-gray-800 dark:text-gray-200"></span></p>
+            <textarea id="descEditText" rows="4" maxlength="1000" placeholder="写一句描述 / 备注，留空就是“暂无描述”" class="block w-full px-3 py-2 border border-primary-100 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-400 dark:bg-gray-700 dark:text-gray-100"></textarea>
+            <p class="text-xs text-gray-400 mt-2">保存后立即在当前页生效。需要管理员登录：没登录会提示你先去 /admin 登录。</p>
+            <div id="descEditMessage" class="hidden rounded-lg border px-3 py-2 text-sm leading-relaxed mt-3"></div>
+            <div class="flex justify-end pt-4">
+              <button type="button" data-desc-edit-close class="bg-white dark:bg-gray-700 py-2 px-4 border border-primary-100 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-primary-600 dark:text-primary-300 hover:bg-secondary-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-200 mr-3">取消</button>
+              <button type="button" id="descEditSaveBtn" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-accent-500 hover:bg-accent-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent-400">保存</button>
+            </div>
+          </div>
+        </div>`;
+      document.body.appendChild(modal);
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal || (e.target.closest && e.target.closest('[data-desc-edit-close]'))) closeDescEditModal();
+      });
+      modal.querySelector('#descEditSaveBtn').addEventListener('click', saveDescEdit);
+      descEditModal = modal;
+      return modal;
+    }
+
+    function showDescEditMessage(text, isError) {
+      const el = descEditModal && descEditModal.querySelector('#descEditMessage');
+      if (!el) return;
+      el.classList.remove('hidden');
+      el.textContent = text;
+      el.className = 'rounded-lg border px-3 py-2 text-sm leading-relaxed mt-3 ' + (isError
+        ? 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-900/30 dark:text-red-300'
+        : 'border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-900/30 dark:text-green-300');
+    }
+
+    function openDescEditModal(siteId) {
+      const site = (window.IORI_SITES || []).find((s) => String(s.id) === String(siteId));
+      if (!site) return;
+      descEditingSite = site;
+      const modal = ensureDescEditModal();
+      modal.querySelector('#descEditSiteName').textContent = decodeHtmlEntities(site.nameHtml);
+      const rawDesc = decodeHtmlEntities(site.descHtml);
+      modal.querySelector('#descEditText').value = (site.hasDesc && rawDesc !== '暂无描述') ? rawDesc : '';
+      const msg = modal.querySelector('#descEditMessage');
+      msg.classList.add('hidden');
+      msg.textContent = '';
+      modal.classList.remove('opacity-0', 'invisible');
+      const inner = modal.firstElementChild;
+      if (inner) inner.classList.remove('translate-y-8');
+      window.setTimeout(() => modal.querySelector('#descEditText').focus(), 50);
+    }
+
+    function closeDescEditModal() {
+      if (!descEditModal) return;
+      descEditModal.classList.add('opacity-0', 'invisible');
+      const inner = descEditModal.firstElementChild;
+      if (inner) inner.classList.add('translate-y-8');
+      descEditingSite = null;
+    }
+
+    async function saveDescEdit() {
+      if (!descEditingSite || !descEditModal) return;
+      const site = descEditingSite;
+      const textarea = descEditModal.querySelector('#descEditText');
+      const saveBtn = descEditModal.querySelector('#descEditSaveBtn');
+      const description = textarea.value.trim();
+      if (description.length > 1000) { showDescEditMessage('描述不能超过 1000 个字符', true); return; }
+      saveBtn.disabled = true;
+      saveBtn.textContent = '保存中…';
+      try {
+        const url = decodeHtmlEntities(site.urlHtml);
+        const logo = decodeHtmlEntities(site.logoUrlHtml || '');
+        // 图标还是坏的 favicon.im 链接时传空，让服务端按网址重新生成 faviconsnap 图标；
+        // 其它图标原样传回，不动它。
+        const logoToSend = /favicon\.im\//i.test(logo) ? '' : logo;
+        const res = await fetch('/api/update-description', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ id: site.id, description, url, logo: logoToSend }),
+        });
+        let data = null;
+        try { data = await res.json(); } catch { /* 非 JSON 按失败处理 */ }
+        if (res.status === 401) {
+          showDescEditMessage('还没登录管理员：请在新标签页打开 /admin 登录，再回来点保存。', true);
+          return;
+        }
+        if (!res.ok) {
+          showDescEditMessage('保存失败：' + ((data && data.message) || ('HTTP ' + res.status)), true);
+          return;
+        }
+        // 原地更新卡片，不用刷新整页
+        const newDescHtml = escapeHtml(description || '暂无描述');
+        site.descHtml = newDescHtml;
+        site.hasDesc = Boolean(description);
+        document.querySelectorAll('.site-desc[data-site-id="' + site.id + '"]').forEach((el) => {
+          el.textContent = description || '暂无描述';
+          el.setAttribute('title', '点击编辑描述');
+        });
+        closeDescEditModal();
+      } catch (e) {
+        showDescEditMessage('保存失败：' + (e.message || String(e)), true);
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = '保存';
+      }
+    }
+
+    function initDescEdit() {
+      if (!sitesGrid) return;
+      // 捕获阶段拦截：描述在 <a> 里面，不拦住点它就直接跳去目标站了
+      sitesGrid.addEventListener('click', (e) => {
+        const descEl = e.target && e.target.closest ? e.target.closest('.site-desc') : null;
+        if (!descEl) return;
+        e.preventDefault();
+        e.stopPropagation();
+        openDescEditModal(descEl.getAttribute('data-site-id'));
+      }, true);
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeDescEditModal();
+      });
+    }
+
     function init() {
+      initDescEdit();
       animateCardBatch(initialCards);
       initialCards.forEach((card) => {
         bindCardAnimationCleanup(card);

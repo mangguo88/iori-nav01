@@ -17,7 +17,7 @@ export function renderSiteCards(sites, settings) {
     const isAboveFold = index < config.aboveFoldImageCount;
     const imgLoadingAttrs = isAboveFold ? 'fetchpriority="high" decoding="async"' : 'loading="lazy" decoding="async"';
 
-    const descHtml = config.hideDesc ? '' : `<p class="${config.descClass}" title="${card.descHtml}">${card.descHtml}</p>`;
+    const descHtml = config.hideDesc ? '' : `<p class="${config.descClass} site-desc cursor-pointer hover:text-primary-600 dark:hover:text-primary-300" data-site-id="${card.id}" title="点击编辑描述">${card.descHtml}</p>`;
 
     const linksHtml = config.hideLinks ? '' : `
       <div class="${config.linkRowClass}">
@@ -41,9 +41,9 @@ export function renderSiteCards(sites, settings) {
             <div class="flex items-start">
               <div class="${config.siteIconClass}">
                 ${card.logoUrlHtml
-        ? `<img src="${card.logoUrlHtml}" alt="${card.nameHtml}" width="40" height="40" class="${config.logoClass}" ${imgLoadingAttrs}>`
-        : `<div class="w-10 h-10 rounded-lg bg-primary-600 flex items-center justify-center text-white font-semibold text-lg shadow-inner">${card.cardInitialHtml}</div>`
-      }
+        ? `<img src="${card.logoUrlHtml}" alt="${card.nameHtml}" width="40" height="40" class="${config.logoClass}" ${imgLoadingAttrs} onerror="this.style.display='none';var f=this.parentElement.querySelector('.site-logo-fallback');if(f){f.style.display='flex';}">`
+        : ``}
+                <div class="site-logo-fallback w-10 h-10 rounded-lg bg-primary-600 flex items-center justify-center text-white font-semibold text-lg shadow-inner" style="${card.logoUrlHtml ? 'display:none;' : ''}">${card.cardInitialHtml}</div>
               </div>
               <div class="flex-1 min-w-0">
                 <h3 class="${config.titleClass}" title="${card.nameHtml}">${card.nameHtml}</h3>

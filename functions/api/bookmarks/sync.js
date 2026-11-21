@@ -71,10 +71,13 @@ function isValidUrl(url) {
 }
 
 function logoFor(url, env) {
-  const iconAPI = env.ICON_API || 'https://favicon.im/';
+  // 默认与项目其它地方一致用 faviconsnap：favicon.im 在部分网络下 403/打不开，
+  // 同步进来的书签图标全是碎图。ICON_API 是前缀 + 域名，
+  // 如 https://faviconsnap.com/api/favicon?url= + clashnode.com。
+  const iconAPI = env.ICON_API || 'https://faviconsnap.com/api/favicon?url=';
   try {
     const domain = url.replace(/^https?:\/\//, '').split('/')[0];
-    return `${iconAPI}${domain}${!env.ICON_API ? '?larger=true' : ''}`;
+    return `${iconAPI}${domain}`;
   } catch {
     return null;
   }
