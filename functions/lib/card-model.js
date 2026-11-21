@@ -70,19 +70,35 @@ export function buildCardTemplateConfig(settings = {}, device = 'desktop') {
   };
 }
 
-// 旧数据里存的是 favicon.im 的图标链接，它在部分网络下 403/打不开，图标全碎。
+// 旧数据里存的图标链接有两种是死的：favicon.im（部分网络 403）和
+// tc.alex.nyc.mn 的 Telegram 图床链接（该图床已返回 500，库里上千条都是它）。
 // 渲染时统一改写成 faviconsnap（项目默认的图标服务），已入库的旧链接不用改库就能恢复。
-function normalizeLogoUrl(logo) {
+function domainOf(url) {
+  try {
+    return new URL(String(url)).hostname || '';
+  } catch {
+    return '';
+  }
+}
+
+function normalizeLogoUrl(logo, siteUrl) {
   if (!logo) return logo;
-  const m = String(logo).match(/^https?:\/\/(?:a\.)?favicon\.im\/([^/?#]+)/i);
-  if (!m) return logo;
-  return `https://faviconsnap.com/api/favicon?url=https://${m[1]}`;
+  const faviconIm = String(logo).match(/^https?:\/\/(?:a\.)?favicon\.im\/([^/?#]+)/i);
+  if (faviconIm) {
+    return `https://faviconsnap.com/api/favicon?url=https://${faviconIm[1]}`;
+  }
+  if (/^https?:\/\/tc\.alex\.nyc\.mn\//i.test(String(logo))) {
+    const domain = domainOf(siteUrl);
+    if (domain) return `https://faviconsnap.com/api/favicon?url=https://${domain}`;
+    return ''; // 书签网址也解析不出时返回空，渲染成首字母兜底，不显示碎图
+  }
+  return logo;
 }
 
 export function buildCardViewModel(site) {
   const rawName = site?.name || '未命名';
   const normalizedUrl = sanitizeUrl(site?.url);
-  const normalizedLogo = normalizeLogoUrl(sanitizeUrl(site?.logo));
+  const normalizedLogo = normalizeLogoUrl(sanitizeUrl(site?.logo), normalizedUrl);
   const rawCatalog = site?.catelog_name || site?.catelog || '未分类';
   const rawDesc = site?.desc || '暂无描述';
 

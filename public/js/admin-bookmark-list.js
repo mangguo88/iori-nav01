@@ -129,12 +129,32 @@
     return `<svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 ml-1 text-amber-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" title="私密书签"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>`;
   }
 
-  function getLogoHtml(config, safeName, cardInitial) {
-    const normalizedLogo = window.normalizeUrl(config.logo);
-    if (normalizedLogo) {
-      return `<img src="${window.escapeHTML(normalizedLogo)}" alt="${safeName}" class="w-full h-full rounded-lg object-cover bg-gray-50">`;
+  // 后台列表也用跟首页一样的改写：死的 favicon.im / tc.alex.nyc.mn 图标链接
+  // 按书签网址改成 faviconsnap，改不了的返回空、显示首字母兜底。
+  function normalizeAdminLogo(config) {
+    const logo = window.normalizeUrl(config.logo);
+    if (!logo) return '';
+    const faviconIm = logo.match(/^https?:\/\/(?:a\.)?favicon\.im\/([^/?#]+)/i);
+    if (faviconIm) {
+      return `https://faviconsnap.com/api/favicon?url=https://${faviconIm[1]}`;
     }
-    return `<div class="w-full h-full rounded-lg bg-primary-100 text-primary-600 flex items-center justify-center font-bold text-lg">${cardInitial}</div>`;
+    if (/^https?:\/\/tc\.alex\.nyc\.mn\//i.test(logo)) {
+      try {
+        const host = new URL(window.normalizeUrl(config.url)).hostname;
+        if (host) return `https://faviconsnap.com/api/favicon?url=https://${host}`;
+      } catch { /* 网址解析不出时落到兜底 */ }
+      return '';
+    }
+    return logo;
+  }
+
+  function getLogoHtml(config, safeName, cardInitial) {
+    const normalizedLogo = normalizeAdminLogo(config);
+    const fallback = `<div class="logo-fallback w-full h-full rounded-lg bg-primary-100 text-primary-600 flex items-center justify-center font-bold text-lg" style="${normalizedLogo ? 'display:none;' : ''}">${cardInitial}</div>`;
+    if (normalizedLogo) {
+      return `<img src="${window.escapeHTML(normalizedLogo)}" alt="${safeName}" class="w-full h-full rounded-lg object-cover bg-gray-50" onerror="this.style.display='none';var f=this.parentElement.querySelector('.logo-fallback');if(f){f.style.display='flex';}">${fallback}`;
+    }
+    return fallback;
   }
 
   function renderConfigCard(config) {

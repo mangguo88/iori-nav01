@@ -417,9 +417,9 @@
       try {
         const url = decodeHtmlEntities(site.urlHtml);
         const logo = decodeHtmlEntities(site.logoUrlHtml || '');
-        // 图标还是坏的 favicon.im 链接时传空，让服务端按网址重新生成 faviconsnap 图标；
+        // 图标还是坏的 favicon.im / tc.alex.nyc.mn 链接时传空，让服务端按网址重新生成 faviconsnap 图标；
         // 其它图标原样传回，不动它。
-        const logoToSend = /favicon\.im\//i.test(logo) ? '' : logo;
+        const logoToSend = /favicon\.im\/|tc\.alex\.nyc\.mn\//i.test(logo) ? '' : logo;
         const res = await fetch('/api/update-description', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
