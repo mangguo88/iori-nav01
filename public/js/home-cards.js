@@ -290,6 +290,9 @@
     function renderSites(sites) {
       if (!sitesGrid) return;
 
+      // 重渲染时收起风格三悬停面板，面板是 body 级浮层，不会随网格一起消失
+      hideStyle3HoverPanel();
+
       // 网格列数可能随设备/布局切换而变化，每批渲染前失效一次
       invalidateAnimationColumnCount();
       applyCardGridColumns();
@@ -877,10 +880,109 @@
       }
     }
 
+    // ---- 风格三悬停展开面板 ----
+    // 风格三是 85px 固定高紧凑块，标题只显示两行、没有描述元素，上一轮的原地展开
+    // 排不上用场。这里用 body 级 fixed 浮层按卡片位置定位：卡片有 contain: content，
+    // 面板放卡片内部会被裁剪；浮层不占网格布局，不挤邻卡。
+    // 只在精细指针设备上启用（触摸设备长按走右键菜单，不触发）。
+    const finePointerQuery = window.matchMedia ? window.matchMedia('(hover: hover) and (pointer: fine)') : null;
+    let style3HoverPanel = null;
+    let style3HoverCard = null;
+    let style3HoverTimer = null;
+
+    function isStyle3HoverEnabled() {
+      return !!finePointerQuery && finePointerQuery.matches;
+    }
+
+    function ensureStyle3HoverPanel() {
+      if (style3HoverPanel) return style3HoverPanel;
+      const panel = document.createElement('div');
+      panel.className = 'style3-hover-panel';
+      panel.setAttribute('aria-hidden', 'true');
+      document.body.appendChild(panel);
+      style3HoverPanel = panel;
+      return panel;
+    }
+
+    function hideStyle3HoverPanel() {
+      if (style3HoverTimer) { window.clearTimeout(style3HoverTimer); style3HoverTimer = null; }
+      if (style3HoverPanel) style3HoverPanel.classList.remove('visible');
+      style3HoverCard = null;
+    }
+
+    function showStyle3HoverPanel(card) {
+      if (!isStyle3HoverEnabled() || !card || !card.classList.contains('style-3')) return;
+      // 进场动画还在跑时卡片位置未定，等动画清掉 card-anim-enter 再出现
+      if (card.classList.contains('card-anim-enter')) return;
+      // 正在拖动排序时不出现
+      if (draggedCard) return;
+      const site = getSiteById(card.getAttribute('data-id'));
+      if (!site) return;
+      const panel = ensureStyle3HoverPanel();
+      const name = decodeHtmlEntities(site.nameHtml || '');
+      const rawDesc = decodeHtmlEntities(site.descHtml || '');
+      const desc = (site.hasDesc && rawDesc && rawDesc !== '暂无描述') ? rawDesc : '暂无描述';
+      const url = decodeHtmlEntities(site.displayUrlHtml || site.urlHtml || '');
+      const logo = decodeHtmlEntities(site.logoUrlHtml || '');
+      panel.innerHTML = `
+        <div class="style3-hover-head">
+          ${logo ? `<img src="${escapeHtml(logo)}" alt="" draggable="false" onerror="this.style.display='none';var f=this.parentElement.querySelector('.style3-hover-fallback');if(f){f.style.display='flex';}">` : ''}
+          <div class="style3-hover-fallback" style="${logo ? 'display:none;' : ''}">${escapeHtml(site.cardInitialHtml || '站')}</div>
+          <div class="style3-hover-title">${escapeHtml(name)}</div>
+        </div>
+        <div class="style3-hover-desc">${escapeHtml(desc)}</div>
+        ${url ? `<div class="style3-hover-url">${escapeHtml(url)}</div>` : ''}`;
+      panel.classList.toggle('frosted', card.classList.contains('frosted-glass-effect'));
+      // 先离屏显示量高度，再定位到卡片上（只过渡 opacity，不做位移，不闪烁）
+      panel.classList.add('visible');
+      panel.style.left = '-9999px';
+      panel.style.top = '0px';
+      const rect = card.getBoundingClientRect();
+      const padX = 12;
+      const padTop = 10;
+      const margin = 8;
+      const width = rect.width + padX * 2;
+      const height = panel.offsetHeight;
+      let left = rect.left - padX;
+      let top = rect.top - padTop;
+      if (left < margin) left = margin;
+      if (left + width > window.innerWidth - margin) left = Math.max(margin, window.innerWidth - width - margin);
+      if (top + height > window.innerHeight - margin) top = Math.max(margin, window.innerHeight - height - margin);
+      if (top < margin) top = margin;
+      panel.style.width = width + 'px';
+      panel.style.left = left + 'px';
+      panel.style.top = top + 'px';
+      style3HoverCard = card;
+    }
+
+    function initStyle3Hover() {
+      if (!sitesGrid || !isStyle3HoverEnabled()) return;
+      sitesGrid.addEventListener('mouseover', (e) => {
+        const card = e.target && e.target.closest ? e.target.closest('.site-card.style-3') : null;
+        if (!card) return;
+        if (style3HoverCard === card && style3HoverPanel && style3HoverPanel.classList.contains('visible')) return;
+        if (style3HoverTimer) window.clearTimeout(style3HoverTimer);
+        style3HoverTimer = window.setTimeout(() => { style3HoverTimer = null; showStyle3HoverPanel(card); }, 120);
+      });
+      sitesGrid.addEventListener('mouseout', (e) => {
+        const card = e.target && e.target.closest ? e.target.closest('.site-card.style-3') : null;
+        if (!card) return;
+        // 移到同一卡片的子元素上不算离开
+        if (e.relatedTarget && card.contains(e.relatedTarget)) return;
+        if (style3HoverCard === card || style3HoverTimer) hideStyle3HoverPanel();
+      });
+      // 滚动、右键、拖动时收起面板
+      document.addEventListener('scroll', hideStyle3HoverPanel, true);
+      window.addEventListener('resize', hideStyle3HoverPanel);
+      sitesGrid.addEventListener('contextmenu', hideStyle3HoverPanel);
+      sitesGrid.addEventListener('dragstart', hideStyle3HoverPanel);
+    }
+
     function init() {
       initDescEdit();
       initContextMenu();
       initDragSort();
+      initStyle3Hover();
       animateCardBatch(initialCards);
       initialCards.forEach((card) => {
         bindCardAnimationCleanup(card);

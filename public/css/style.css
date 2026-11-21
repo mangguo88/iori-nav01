@@ -806,6 +806,106 @@ html.dark .site-card.style-3:not(.frosted-glass-effect) .site-title {
   color: #f3f4f6;
 }
 
+/* 风格三悬停展开面板：body 级 fixed 浮层，按卡片位置定位，不占网格布局。
+   卡片有 contain: content，面板放卡片内部会被裁剪，所以必须挂在 body 下。
+   pointer-events: none，鼠标永远碰不到面板，移出卡片即消失，不干扰卡片点击。 */
+.style3-hover-panel {
+  position: fixed;
+  z-index: 90;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  border-radius: var(--card-radius, 12px);
+  border: 1px solid rgba(219, 234, 254, 0.6);
+  background-color: rgba(255, 255, 255, var(--card-bg-opacity, 1));
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.18);
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.18s ease, visibility 0s linear 0.18s;
+}
+.style3-hover-panel.visible {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.18s ease;
+}
+html.dark .style3-hover-panel {
+  background-color: rgba(31, 41, 55, var(--card-bg-opacity, 1));
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.45);
+}
+/* 卡片开了毛玻璃时，面板也用玻璃底，同样受透明度变量控制 */
+.style3-hover-panel.frosted {
+  background-color: rgba(255, 255, 255, calc(0.3 * var(--card-bg-opacity, 1)));
+  border-color: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(var(--frosted-glass-blur, 15px));
+  -webkit-backdrop-filter: blur(var(--frosted-glass-blur, 15px));
+}
+html.dark .style3-hover-panel.frosted {
+  background-color: rgba(30, 41, 59, calc(0.88 * var(--card-bg-opacity, 1)));
+  border-color: rgba(255, 255, 255, 0.12);
+}
+body.custom-wallpaper .style3-hover-panel.frosted,
+html.dark body.custom-wallpaper .style3-hover-panel.frosted {
+  background-color: rgba(255, 255, 255, calc(0.3 * var(--card-bg-opacity, 1)));
+  border-color: rgba(255, 255, 255, 0.2);
+}
+.style3-hover-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.style3-hover-panel img {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  object-fit: contain;
+}
+.style3-hover-fallback {
+  display: flex;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background-color: #2563eb;
+  color: #fff;
+  font-size: 20px;
+  font-weight: 600;
+}
+.style3-hover-title {
+  min-width: 0;
+  color: #111827;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.4;
+  word-break: break-word;
+}
+html.dark .style3-hover-title {
+  color: #f3f4f6;
+}
+.style3-hover-desc {
+  margin-top: 10px;
+  color: #6b7280;
+  font-size: 13px;
+  line-height: 1.6;
+  word-break: break-word;
+}
+html.dark .style3-hover-desc {
+  color: #9ca3af;
+}
+.style3-hover-url {
+  margin-top: 8px;
+  color: #3b82f6;
+  font-size: 12px;
+  line-height: 1.5;
+  word-break: break-all;
+}
+html.dark .style3-hover-url {
+  color: #60a5fa;
+}
+
 /* 毛玻璃默认白字；用户自定义标题色仍可通过注入的 color !important 覆盖 */
 .site-card.style-3.frosted-glass-effect .site-title {
   color: rgba(255, 255, 255, 0.96);
