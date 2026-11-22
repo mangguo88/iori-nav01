@@ -1933,21 +1933,6 @@ body .search-engine-option.active {
   .mobile-overlay.open { opacity: 1; pointer-events: auto; }
 }
 
-/* 桌面窄窗口：有鼠标就不变抽屉（fe9d246 的 pointer:fine 路子）。
-   1024px 以下侧栏本来会平移藏起来变抽屉；但有鼠标的桌面设备窗口再窄也该一直显示
-   侧栏，只有触屏/手机（coarse pointer）才保留抽屉。内容区左边距跟着 --sidebar-w
-   留出侧栏宽度，不让侧栏盖住内容；抽屉用的遮罩、汉堡按钮、侧栏内 X 按钮在桌面下
-   直接禁掉，别留点了没反应的死按钮。桌面收起（#sidebar-toggle）那两条规则也延到
-   细指针下，宽屏收起后窗口缩窄仍保持收起状态。 */
-@media (pointer: fine) {
-  .mobile-sidebar { transform: none !important; }
-  .mobile-overlay { opacity: 0 !important; pointer-events: none !important; }
-  #sidebarToggle { display: none !important; }
-  #closeSidebar { display: none !important; }
-  .main-content { margin-left: var(--sidebar-w, 256px); }
-  #sidebar-toggle:checked ~ .sidebar { margin-left: calc(-1 * var(--sidebar-w, 256px)); }
-  #sidebar-toggle:checked ~ .main-content { margin-left: 0; }
-}
 
 .line-clamp-2 {
   display: -webkit-box !important; -webkit-line-clamp: 2 !important; -webkit-box-orient: vertical !important;
