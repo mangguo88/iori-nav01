@@ -1927,7 +1927,9 @@ body .search-engine-option.active {
 
 /* 侧边栏与 Overlay */
 @media (max-width: 1023px) {
-  .mobile-sidebar { transform: translateX(-100%); transition: transform 0.3s ease; }
+  /* 藏起时多移 2px：只移 -100% 时侧栏右边框（border-r）正好贴在视口左边缘，
+     露一条蓝色竖线；多移 2px 让边框和阴影完全出屏。 */
+  .mobile-sidebar { transform: translateX(calc(-100% - 2px)); transition: transform 0.3s ease; }
   .mobile-sidebar.open { transform: translateX(0); }
   .mobile-overlay { opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
   .mobile-overlay.open { opacity: 1; pointer-events: auto; }
@@ -1949,8 +1951,25 @@ body .search-engine-option.active {
 /* 侧栏宽与内容区左边距用同一个变量联动，默认 256px；汉堡收起时上面那条规则归零。 */
 :root { --sidebar-w: 256px; }
 #sidebar { width: var(--sidebar-w, 256px); }
+/* 侧栏与重开按钮的层级高于顶栏（header sticky z-60），低于弹窗（800/900）：
+   顶栏是不透明底、盖住 fixed z-50 的侧栏和汉堡按钮——侧栏滑出时顶不上去
+   （上面留约 110px 顶栏）、汉堡按钮点不到。提到 70 后：侧栏滑出时盖住
+   顶栏、从页面最顶端开始；两个汉堡按钮浮在顶栏之上、任何时候都看得见
+   点得到。侧栏打开时它在 DOM 里排在按钮后面，同层级下后者居上，打开的
+   侧栏会盖住按钮（正好，打开时不需要重开按钮）。宽屏下侧栏在左、顶栏在
+   内容区，横向不重叠，不打架。这里用 ID 选择器盖掉模板里的 Tailwind z-50
+   （Tailwind 是编译好的 tailwind.min.css，z-[70] 这类任意值不会生成）。 */
+#sidebar { z-index: 70; }
+#sidebarToggleWrap,
+#sidebarDesktopToggleWrap { z-index: 70; }
 @media (min-width: 1024px) {
   .main-content { margin-left: var(--sidebar-w, 256px); }
+}
+/* 窄窗口下内容区永不留左边距：侧栏是浮在上面的抽屉，内容区必须占满整宽。
+   兜底规则，防止任何旧版/冲突规则在窄窗口下给内容区留出侧栏空位
+   （侧栏藏着、内容区却向右挪、右边卡片被切）。 */
+@media (max-width: 1023px) {
+  .main-content { margin-left: 0 !important; }
 }
 /* 底色四档：默认（不写规则，走 aside 自身的 bg-white / dark:bg-gray-900）、
    白色、浅灰、深色。html 上的属性选择器 + #sidebar 优先于 Tailwind 的 dark 变体。

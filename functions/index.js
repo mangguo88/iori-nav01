@@ -518,7 +518,7 @@ export async function onRequest(context) {
     </button>`;
   const topRightActionsHtml = `<div class="fixed top-4 right-4 z-50 flex items-center gap-3">${themeIconHtml}${searchIconHtml}${adminIconHtml}</div>`;
   const leftTopActionHtml = `
-    <div class="fixed top-4 left-4 z-50 ${mobileToggleVisibilityClass}">
+    <div id="sidebarToggleWrap" class="fixed top-4 left-4 z-50 ${mobileToggleVisibilityClass}">
       <button id="sidebarToggle" class="p-2 rounded-lg bg-white dark:bg-gray-800 shadow-md hover:bg-gray-100 dark:hover:bg-gray-700">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-primary-500 dark:text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
       </button>
