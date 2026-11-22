@@ -314,6 +314,22 @@ export async function onRequest(context) {
           : `<span class="root-dock-icon-fallback">${card.cardInitialHtml}</span>`;
         return `<a href="${card.urlHtml || '#'}" ${card.hasValidUrl ? 'target="_blank" rel="noopener noreferrer"' : ''} class="root-dock-item" title="${card.nameHtml}"><span class="root-dock-circle">${iconHtml}</span><span class="root-dock-name">${card.nameHtml}</span></a>`;
       }).join('')}</div>
+      <button id="dockSettingsBtn" type="button" class="root-dock-settings-btn" title="图标栏设置" aria-label="图标栏设置">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      </button>
+      <div id="dockSettingsPanel" class="root-dock-settings-panel hidden">
+        <div class="root-dock-settings-title">图标栏设置</div>
+        <div class="root-dock-settings-label">对齐方式</div>
+        <div id="dockAlignBtns" class="root-dock-align-btns">
+          <button type="button" data-dock-align="left" class="dock-align-btn">居左</button>
+          <button type="button" data-dock-align="center" class="dock-align-btn">居中</button>
+          <button type="button" data-dock-align="right" class="dock-align-btn">居右</button>
+        </div>
+        <div class="root-dock-settings-row"><label for="dockSizeRange">图标大小</label><span id="dockSizeValue">64px</span></div>
+        <input id="dockSizeRange" type="range" min="48" max="80" step="2" value="64" class="w-full accent-blue-500" aria-label="图标大小">
+        <div class="root-dock-settings-row"><label for="dockGapRange">间距</label><span id="dockGapValue">16px</span></div>
+        <input id="dockGapRange" type="range" min="8" max="32" step="2" value="16" class="w-full accent-blue-500" aria-label="间距">
+      </div>
     </div>` : '';
 
   // === 9c. 胶囊形子分类（仿 BoTab 标题下那排胶囊，只学展示形式）===

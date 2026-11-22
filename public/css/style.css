@@ -1875,15 +1875,53 @@ body .search-engine-option.active {
   .main-content { margin-left: var(--sidebar-w, 256px); }
 }
 /* 底色四档：默认（不写规则，走 aside 自身的 bg-white / dark:bg-gray-900）、
-   白色、浅灰、深色。html 上的属性选择器 + #sidebar 优先于 Tailwind 的 dark 变体。 */
-html[data-sidebar-bg="white"] #sidebar { background-color: #ffffff; }
-html[data-sidebar-bg="gray"] #sidebar { background-color: #f3f4f6; }
-html[data-sidebar-bg="dark"] #sidebar { background-color: #1f2937; border-color: #374151; }
+   白色、浅灰、深色。html 上的属性选择器 + #sidebar 优先于 Tailwind 的 dark 变体。
+   注意：深色/浅色模式下有壁纸时，毛玻璃规则（约 161 行与 1910 行）用 !important
+   写死了侧栏底色和右边框，这里也必须加 !important 才能赢过它；同为 !important 时
+   带 id 的选择器优先级更高。默认档不写规则，仍走原来的毛玻璃效果。 */
+html[data-sidebar-bg="white"] #sidebar { background-color: #ffffff !important; border-right-color: #e5e7eb !important; }
+html[data-sidebar-bg="gray"] #sidebar { background-color: #f3f4f6 !important; border-right-color: #e5e7eb !important; }
+html[data-sidebar-bg="dark"] #sidebar { background-color: #1f2937 !important; border-color: #374151 !important; border-right-color: #374151 !important; }
+/* 深色底时数量小 pill 也换深底浅字（浅色模式下 Tailwind 默认是浅底灰字，放深底上看不清） */
+html[data-sidebar-bg="dark"] #sidebar .sidebar-tree-count { background-color: #374151; color: #d1d5db; }
+/* 底色档自动配字：浅底深字、深底浅字（字体颜色=默认时生效；手动选了字体颜色后由
+   下面的 data-sidebar-font-color 规则接管）。导航文字自带 Tailwind 文字色，这里用
+   --sidebar-fg 变量 + 带 #sidebar 的选择器覆盖；当前选中项除外，保留蓝色标识。 */
+html[data-sidebar-bg="white"] #sidebar,
+html[data-sidebar-bg="gray"] #sidebar { --sidebar-fg: #374151; }
+html[data-sidebar-bg="dark"] #sidebar { --sidebar-fg: #f3f4f6; }
+/* 手动字体颜色：与上面同优先级、后出现，选中后覆盖自动配字。“默认”时 JS 会删掉
+   这个属性，不写规则，走自动配字或 Tailwind 默认色。 */
+html[data-sidebar-font-color="gray"] #sidebar { --sidebar-fg: #374151; }
+html[data-sidebar-font-color="blue"] #sidebar { --sidebar-fg: #2563eb; }
+html[data-sidebar-font-color="white"] #sidebar { --sidebar-fg: #ffffff; }
+/* 字体颜色生效处：只有上面两组属性之一存在时才匹配（否则走 Tailwind 默认色）；
+   :is() 取其中最具体的参数计优先级，高于 Tailwind 的 dark 变体。 */
+html:is([data-sidebar-bg="white"], [data-sidebar-bg="gray"], [data-sidebar-bg="dark"], [data-sidebar-font-color]) #sidebar :is(
+  .sidebar-tree-link:not(.bg-secondary-100),
+  .sidebar-botab-link:not(.bg-secondary-100),
+  .sidebar-tree-group,
+  .sidebar-botab-group,
+  .sidebar-top-row button,
+  .sidebar-top-row a:not(.bg-secondary-100),
+  h3,
+  #sidebarSettingsBtn,
+  a[href="/admin"]
+) { color: var(--sidebar-fg); }
+/* 侧栏字号：默认 14px（与小舒模式名字一致）；滑杆改 --sidebar-font-size。
+   注意：树形名字以前继承 body 的 16px，统一成 14px 后与小舒模式一致，滑杆可调回 16px。 */
+#sidebar { font-size: var(--sidebar-font-size, 14px); }
 /* 底色小色板：每个按钮用自己的底色预览，当前选中的加蓝边 */
 .sidebar-bg-swatch { color: #374151; background-color: #ffffff; border-color: #d1d5db; }
 .sidebar-bg-swatch[data-sidebar-bg="gray"] { background-color: #f3f4f6; }
 .sidebar-bg-swatch[data-sidebar-bg="dark"] { background-color: #1f2937; border-color: #4b5563; color: #f3f4f6; }
 .sidebar-bg-swatch.is-active { border-color: #3b82f6; box-shadow: 0 0 0 1px #3b82f6; font-weight: 600; }
+/* 字体颜色小色板：每个按钮用自己的颜色预览，当前选中的加蓝边（与底色色板同一套选中样式） */
+.sidebar-font-swatch { color: #374151; background-color: #ffffff; border-color: #d1d5db; }
+.sidebar-font-swatch[data-sidebar-font-color="gray"] { background-color: #374151; color: #f9fafb; }
+.sidebar-font-swatch[data-sidebar-font-color="blue"] { background-color: #2563eb; border-color: #1d4ed8; color: #ffffff; }
+.sidebar-font-swatch[data-sidebar-font-color="white"] { background-color: #ffffff; color: #9ca3af; }
+.sidebar-font-swatch.is-active { border-color: #3b82f6; box-shadow: 0 0 0 1px #3b82f6; font-weight: 600; }
 
 /* 毛玻璃效果 - Light Mode */
 .frosted-glass-effect {
@@ -2434,6 +2472,8 @@ body.theme-landscape .site-card.style-3:not(.frosted-glass-effect) .site-title {
   position: sticky;
   top: 0;
   z-index: 40;
+  display: flex;
+  align-items: flex-start;
   width: max-content;
   max-width: calc(100% - 2rem);
   margin: 1rem auto 0;
@@ -2441,28 +2481,33 @@ body.theme-landscape .site-card.style-3:not(.frosted-glass-effect) .site-title {
   background: transparent;
   border: 0;
 }
+/* 对齐方式（默认居中 = 上面那行 margin auto；居左/居右改 margin；记 localStorage） */
+html[data-dock-align="left"] .root-dock { margin-left: 0; margin-right: auto; }
+html[data-dock-align="right"] .root-dock { margin-left: auto; margin-right: 0; }
 .root-dock.hidden {
   display: none;
 }
 .root-dock-items {
   display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
   align-items: flex-start;
-  gap: 1rem;
+  gap: var(--dock-gap, 1rem);
   overflow-x: auto;
   scrollbar-width: thin;
   padding: 0.25rem 0.125rem 0.5rem;
 }
 .root-dock-item {
   flex-shrink: 0;
-  width: 4.75rem;
+  width: calc(var(--dock-icon-size, 64px) + 12px);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.375rem;
 }
 .root-dock-circle {
-  width: 4rem;
-  height: 4rem;
+  width: var(--dock-icon-size, 64px);
+  height: var(--dock-icon-size, 64px);
   border-radius: 9999px;
   background-color: #fff;
   border: 1px solid #e5e7eb;
@@ -2513,6 +2558,64 @@ body.theme-landscape .site-card.style-3:not(.frosted-glass-effect) .site-title {
   color: #d1d5db;
 }
 
+/* ===== 图标栏设置：最右端小齿轮 + 点开的小浮层（对齐/大小/间距）===== */
+.root-dock-settings-btn {
+  flex-shrink: 0;
+  margin-top: 0.375rem;
+  margin-left: 0.5rem;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  background-color: #fff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: color 0.15s ease, box-shadow 0.15s ease;
+}
+.root-dock-settings-btn:hover { color: #2563eb; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15); }
+.root-dock-settings-btn svg { width: 1.125rem; height: 1.125rem; }
+.dark .root-dock-settings-btn { background-color: #374151; border-color: #4b5563; color: #d1d5db; }
+.root-dock-settings-panel {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  z-index: 60;
+  width: 15rem;
+  border-radius: 0.75rem;
+  border: 1px solid #e5e7eb;
+  background-color: #ffffff;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  padding: 0.75rem;
+  font-size: 0.875rem;
+  color: #374151;
+}
+.root-dock-settings-panel.hidden { display: none; }
+.dark .root-dock-settings-panel { background-color: #1f2937; border-color: #374151; color: #e5e7eb; }
+.root-dock-settings-title { font-weight: 600; margin-bottom: 0.5rem; }
+.root-dock-settings-label { color: #6b7280; margin: 0.5rem 0 0.25rem; font-size: 0.8125rem; }
+.dark .root-dock-settings-label { color: #9ca3af; }
+.root-dock-align-btns { display: flex; gap: 0.375rem; }
+.dock-align-btn {
+  flex: 1;
+  padding: 0.25rem 0;
+  border-radius: 0.375rem;
+  border: 1px solid #d1d5db;
+  background-color: #fff;
+  color: #374151;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+.dark .dock-align-btn { background-color: #374151; border-color: #4b5563; color: #e5e7eb; }
+.dock-align-btn.is-active { border-color: #3b82f6; box-shadow: 0 0 0 1px #3b82f6; font-weight: 600; color: #2563eb; }
+.root-dock-settings-row { display: flex; align-items: center; justify-content: space-between; margin: 0.5rem 0 0.25rem; }
+.root-dock-settings-row span { font-size: 0.75rem; color: #6b7280; }
+.dark .root-dock-settings-row span { color: #9ca3af; }
+.root-dock-settings-panel input[type="range"] { width: 100%; }
+
 /* ===== 左侧栏小舒模式（仿 BoTab 侧栏，只学展示形式）===== */
 .sidebar-botab-row {
   margin-bottom: 0.125rem;
@@ -2527,7 +2630,7 @@ body.theme-landscape .site-card.style-3:not(.frosted-glass-effect) .site-title {
   word-break: break-word;
   overflow-wrap: anywhere;
   line-height: 1.375;
-  font-size: 0.875rem;
+  font-size: var(--sidebar-font-size, 0.875rem);
 }
 .sidebar-botab-group {
   cursor: default;

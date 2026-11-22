@@ -17,19 +17,29 @@
   <meta name="twitter:description" content="{{SITE_DESCRIPTION}}">
   <meta name="twitter:image" content="{{OG_IMAGE_URL}}">
   <link rel="icon" href="/favicon.svg?v=148aafdf" type="image/svg+xml">
-  <link rel="stylesheet" href="/css/style.css?v=40181c0d">
+  <link rel="stylesheet" href="/css/style.css?v=ee572c02">
   <script>
     // Init Theme ASAP to prevent FOUC
     if (localStorage.getItem('theme') === 'dark') {
       document.documentElement.classList.add('dark');
     }
-    // 侧栏宽度 / 底色：页面绘制前先从 localStorage 恢复，避免闪烁
-    // （与 home-category-nav.js 里的侧栏设置同一组 key）
+    // 侧栏宽度 / 底色 / 字体颜色 / 字号、图标栏对齐 / 大小 / 间距：页面绘制前先从
+    // localStorage 恢复，避免闪烁（与 home-category-nav.js 里的设置同一组 key）
     try {
       var _sbw = parseInt(localStorage.getItem('iori_sidebar_width_v1') || '256', 10);
       if (_sbw >= 200 && _sbw <= 320) document.documentElement.style.setProperty('--sidebar-w', _sbw + 'px');
       var _sbbg = localStorage.getItem('iori_sidebar_bg_v1') || 'default';
       if (['white', 'gray', 'dark'].indexOf(_sbbg) >= 0) document.documentElement.setAttribute('data-sidebar-bg', _sbbg);
+      var _sbfc = localStorage.getItem('iori_sidebar_font_color_v1') || 'default';
+      if (['gray', 'blue', 'white'].indexOf(_sbfc) >= 0) document.documentElement.setAttribute('data-sidebar-font-color', _sbfc);
+      var _sbfs = parseInt(localStorage.getItem('iori_sidebar_font_size_v1') || '14', 10);
+      if (_sbfs >= 13 && _sbfs <= 18) document.documentElement.style.setProperty('--sidebar-font-size', _sbfs + 'px');
+      var _dka = localStorage.getItem('iori_dock_align_v1') || 'center';
+      if (['left', 'right'].indexOf(_dka) >= 0) document.documentElement.setAttribute('data-dock-align', _dka);
+      var _dks = parseInt(localStorage.getItem('iori_dock_size_v1') || '64', 10);
+      if (_dks >= 48 && _dks <= 80) document.documentElement.style.setProperty('--dock-icon-size', _dks + 'px');
+      var _dkg = parseInt(localStorage.getItem('iori_dock_gap_v1') || '16', 10);
+      if (_dkg >= 8 && _dkg <= 32) document.documentElement.style.setProperty('--dock-gap', _dkg + 'px');
     } catch (e) { /* 隐私模式等读不到时静默忽略，用默认样式 */ }
   </script>
   <link rel="stylesheet" href="/css/tailwind.min.css?v=eb523845">
@@ -152,6 +162,18 @@
             <button type="button" data-sidebar-bg="gray" class="sidebar-bg-swatch flex-1 py-1 rounded-md border text-xs transition-colors" title="浅灰">浅灰</button>
             <button type="button" data-sidebar-bg="dark" class="sidebar-bg-swatch flex-1 py-1 rounded-md border text-xs transition-colors" title="深色">深色</button>
           </div>
+          <div class="mt-3 mb-1 text-gray-700 dark:text-gray-300">字体颜色</div>
+          <div id="sidebarFontColorSwatches" class="flex items-center gap-2">
+            <button type="button" data-sidebar-font-color="default" class="sidebar-font-swatch flex-1 py-1 rounded-md border text-xs transition-colors" title="默认（按底色自动配）">默认</button>
+            <button type="button" data-sidebar-font-color="gray" class="sidebar-font-swatch flex-1 py-1 rounded-md border text-xs transition-colors" title="深灰">深灰</button>
+            <button type="button" data-sidebar-font-color="blue" class="sidebar-font-swatch flex-1 py-1 rounded-md border text-xs transition-colors" title="蓝色">蓝色</button>
+            <button type="button" data-sidebar-font-color="white" class="sidebar-font-swatch flex-1 py-1 rounded-md border text-xs transition-colors" title="白色">白色</button>
+          </div>
+          <div class="mt-3 flex items-center justify-between mb-1">
+            <label for="sidebarFontSizeRange" class="text-gray-700 dark:text-gray-300">字体大小</label>
+            <span id="sidebarFontSizeValue" class="text-xs text-gray-500 dark:text-gray-400">14px</span>
+          </div>
+          <input id="sidebarFontSizeRange" type="range" min="13" max="18" step="1" value="14" class="w-full accent-blue-500" aria-label="字体大小">
         </div>
 
         <a href="/admin" target="_blank" class="mt-2 flex items-center px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-primary-500 dark:hover:text-primary-400 transition duration-300">
@@ -279,7 +301,7 @@
   <script src="/js/home-cards.js?v=a8e67422"></script>
   <script src="/js/home-submit.js?v=5457a66d"></script>
   <script src="/js/home-search.js?v=5eadfb7e"></script>
-  <script src="/js/home-category-nav.js?v=6b7c25a2"></script>
+  <script src="/js/home-category-nav.js?v=4d005e2f"></script>
   <script src="/js/main.js?v=193ce81f"></script>
 </body>
 </html>

@@ -382,6 +382,47 @@
       swatches.forEach((btn) => btn.classList.toggle('is-active', btn.getAttribute('data-sidebar-bg') === bg));
     }
 
+    // ---- 侧栏设置：字体颜色 + 字体大小（与底色同一面板）----
+    const SIDEBAR_FONT_COLOR_KEY = 'iori_sidebar_font_color_v1';
+    const SIDEBAR_FONT_SIZE_KEY = 'iori_sidebar_font_size_v1';
+    const SIDEBAR_FONT_COLOR_VALUES = ['default', 'gray', 'blue', 'white'];
+    const SIDEBAR_FONT_SIZE_DEFAULT = 14;
+    const SIDEBAR_FONT_SIZE_MIN = 13;
+    const SIDEBAR_FONT_SIZE_MAX = 18;
+
+    function clampSidebarFontSize(value) {
+      const n = parseInt(value, 10);
+      if (!Number.isFinite(n)) return SIDEBAR_FONT_SIZE_DEFAULT;
+      return Math.min(SIDEBAR_FONT_SIZE_MAX, Math.max(SIDEBAR_FONT_SIZE_MIN, n));
+    }
+
+    function getSidebarFontColor() {
+      try {
+        const v = localStorage.getItem(SIDEBAR_FONT_COLOR_KEY);
+        return SIDEBAR_FONT_COLOR_VALUES.indexOf(v) >= 0 ? v : 'default';
+      } catch (e) { return 'default'; }
+    }
+
+    function getSidebarFontSize() {
+      try { return clampSidebarFontSize(localStorage.getItem(SIDEBAR_FONT_SIZE_KEY)); }
+      catch (e) { return SIDEBAR_FONT_SIZE_DEFAULT; }
+    }
+
+    function applySidebarFontColor(color) {
+      if (color === 'default') document.documentElement.removeAttribute('data-sidebar-font-color');
+      else document.documentElement.setAttribute('data-sidebar-font-color', color);
+      const swatches = document.querySelectorAll('#sidebarFontColorSwatches .sidebar-font-swatch');
+      swatches.forEach((btn) => btn.classList.toggle('is-active', btn.getAttribute('data-sidebar-font-color') === color));
+    }
+
+    function applySidebarFontSize(px) {
+      document.documentElement.style.setProperty('--sidebar-font-size', px + 'px');
+      const range = document.getElementById('sidebarFontSizeRange');
+      if (range) range.value = String(px);
+      const valueEl = document.getElementById('sidebarFontSizeValue');
+      if (valueEl) valueEl.textContent = px + 'px';
+    }
+
     function initSidebarSettings() {
       const panel = document.getElementById('sidebarSettingsPanel');
       const toggleBtn = document.getElementById('sidebarSettingsBtn');
@@ -405,9 +446,140 @@
           applySidebarBg(bg);
         });
       });
+      const fontSwatches = document.querySelectorAll('#sidebarFontColorSwatches .sidebar-font-swatch');
+      fontSwatches.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const color = btn.getAttribute('data-sidebar-font-color');
+          if (SIDEBAR_FONT_COLOR_VALUES.indexOf(color) < 0) return;
+          try { localStorage.setItem(SIDEBAR_FONT_COLOR_KEY, color); } catch (e) { /* 隐私模式等写不进时静默忽略 */ }
+          applySidebarFontColor(color);
+        });
+      });
+      const fontRange = document.getElementById('sidebarFontSizeRange');
+      if (fontRange) {
+        fontRange.addEventListener('input', () => {
+          const px = clampSidebarFontSize(fontRange.value);
+          try { localStorage.setItem(SIDEBAR_FONT_SIZE_KEY, String(px)); } catch (e) { /* 隐私模式等写不进时静默忽略 */ }
+          applySidebarFontSize(px);
+        });
+      }
       // 与 <head> 里提前恢复的值同步一次控件状态
       applySidebarWidth(getSidebarWidth());
       applySidebarBg(getSidebarBg());
+      applySidebarFontColor(getSidebarFontColor());
+      applySidebarFontSize(getSidebarFontSize());
+    }
+
+    // ---- 图标栏设置：对齐 + 图标大小 + 间距（齿轮浮层，记 localStorage，默认居中）----
+    const DOCK_ALIGN_KEY = 'iori_dock_align_v1';
+    const DOCK_SIZE_KEY = 'iori_dock_size_v1';
+    const DOCK_GAP_KEY = 'iori_dock_gap_v1';
+    const DOCK_ALIGN_VALUES = ['left', 'center', 'right'];
+    const DOCK_SIZE_DEFAULT = 64;
+    const DOCK_SIZE_MIN = 48;
+    const DOCK_SIZE_MAX = 80;
+    const DOCK_GAP_DEFAULT = 16;
+    const DOCK_GAP_MIN = 8;
+    const DOCK_GAP_MAX = 32;
+
+    function clampDockSize(value) {
+      const n = parseInt(value, 10);
+      if (!Number.isFinite(n)) return DOCK_SIZE_DEFAULT;
+      return Math.min(DOCK_SIZE_MAX, Math.max(DOCK_SIZE_MIN, n));
+    }
+
+    function clampDockGap(value) {
+      const n = parseInt(value, 10);
+      if (!Number.isFinite(n)) return DOCK_GAP_DEFAULT;
+      return Math.min(DOCK_GAP_MAX, Math.max(DOCK_GAP_MIN, n));
+    }
+
+    function getDockAlign() {
+      try {
+        const v = localStorage.getItem(DOCK_ALIGN_KEY);
+        return DOCK_ALIGN_VALUES.indexOf(v) >= 0 ? v : 'center';
+      } catch (e) { return 'center'; }
+    }
+
+    function getDockSize() {
+      try { return clampDockSize(localStorage.getItem(DOCK_SIZE_KEY)); }
+      catch (e) { return DOCK_SIZE_DEFAULT; }
+    }
+
+    function getDockGap() {
+      try { return clampDockGap(localStorage.getItem(DOCK_GAP_KEY)); }
+      catch (e) { return DOCK_GAP_DEFAULT; }
+    }
+
+    function applyDockAlign(align) {
+      if (align === 'center') document.documentElement.removeAttribute('data-dock-align');
+      else document.documentElement.setAttribute('data-dock-align', align);
+      const btns = document.querySelectorAll('#dockAlignBtns .dock-align-btn');
+      btns.forEach((btn) => btn.classList.toggle('is-active', btn.getAttribute('data-dock-align') === align));
+    }
+
+    function applyDockSize(px) {
+      document.documentElement.style.setProperty('--dock-icon-size', px + 'px');
+      const range = document.getElementById('dockSizeRange');
+      if (range) range.value = String(px);
+      const valueEl = document.getElementById('dockSizeValue');
+      if (valueEl) valueEl.textContent = px + 'px';
+    }
+
+    function applyDockGap(px) {
+      document.documentElement.style.setProperty('--dock-gap', px + 'px');
+      const range = document.getElementById('dockGapRange');
+      if (range) range.value = String(px);
+      const valueEl = document.getElementById('dockGapValue');
+      if (valueEl) valueEl.textContent = px + 'px';
+    }
+
+    function initDockSettings() {
+      const panel = document.getElementById('dockSettingsPanel');
+      const toggleBtn = document.getElementById('dockSettingsBtn');
+      if (!panel || !toggleBtn) return; // 图标栏只在“全部”与“收藏夹栏”视图显示
+      toggleBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        panel.classList.toggle('hidden');
+      });
+      document.addEventListener('click', (e) => {
+        if (panel.classList.contains('hidden')) return;
+        if (!e.target.closest || (!e.target.closest('#dockSettingsPanel') && !e.target.closest('#dockSettingsBtn'))) {
+          panel.classList.add('hidden');
+        }
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') panel.classList.add('hidden');
+      });
+      const alignBtns = document.querySelectorAll('#dockAlignBtns .dock-align-btn');
+      alignBtns.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const align = btn.getAttribute('data-dock-align');
+          if (DOCK_ALIGN_VALUES.indexOf(align) < 0) return;
+          try { localStorage.setItem(DOCK_ALIGN_KEY, align); } catch (e) { /* 隐私模式等写不进时静默忽略 */ }
+          applyDockAlign(align);
+        });
+      });
+      const sizeRange = document.getElementById('dockSizeRange');
+      if (sizeRange) {
+        sizeRange.addEventListener('input', () => {
+          const px = clampDockSize(sizeRange.value);
+          try { localStorage.setItem(DOCK_SIZE_KEY, String(px)); } catch (e) { /* 隐私模式等写不进时静默忽略 */ }
+          applyDockSize(px);
+        });
+      }
+      const gapRange = document.getElementById('dockGapRange');
+      if (gapRange) {
+        gapRange.addEventListener('input', () => {
+          const px = clampDockGap(gapRange.value);
+          try { localStorage.setItem(DOCK_GAP_KEY, String(px)); } catch (e) { /* 隐私模式等写不进时静默忽略 */ }
+          applyDockGap(px);
+        });
+      }
+      // 与 <head> 里提前恢复的值同步一次控件状态
+      applyDockAlign(getDockAlign());
+      applyDockSize(getDockSize());
+      applyDockGap(getDockGap());
     }
 
     // ---- 胶囊形子分类：站内切换分类时按 window.IORI_CAPSULES 重绘 ----
@@ -645,6 +817,7 @@
     initSidebarTree();
     initSidebarMode();
     initSidebarSettings();
+    initDockSettings();
     restoreLastCategory();
   };
 })();
