@@ -571,7 +571,7 @@
 
     function initSearchToggle() {
       const btn = document.getElementById('searchToggleBtn');
-      if (!btn) return; // 图标栏只在“全部”与“收藏夹栏”视图显示
+      if (!btn) return; // 按钮在右上角按钮组里，所有视图都有；极少数旧缓存模板里没有才跳过
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         const hidden = !getSearchHidden();

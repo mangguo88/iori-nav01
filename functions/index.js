@@ -314,11 +314,9 @@ export async function onRequest(context) {
           : `<span class="root-dock-icon-fallback">${card.cardInitialHtml}</span>`;
         return `<a href="${card.urlHtml || '#'}" ${card.hasValidUrl ? 'target="_blank" rel="noopener noreferrer"' : ''} class="root-dock-item" title="${card.nameHtml}"><span class="root-dock-circle">${iconHtml}</span><span class="root-dock-name">${card.nameHtml}</span></a>`;
       }).join('')}</div>
+      <div class="root-dock-settings-wrap">
       <button id="dockSettingsBtn" type="button" class="root-dock-settings-btn" title="图标栏设置" aria-label="图标栏设置">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-      </button>
-      <button id="searchToggleBtn" type="button" class="root-dock-settings-btn" title="隐藏搜索栏" aria-label="显示或隐藏搜索栏" aria-pressed="false">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
       </button>
       <div id="dockSettingsPanel" class="root-dock-settings-panel hidden">
         <div class="root-dock-settings-title">图标栏设置</div>
@@ -339,6 +337,7 @@ export async function onRequest(context) {
           <button type="button" data-dock-font-color="gray" class="dock-font-swatch">深灰</button>
           <button type="button" data-dock-font-color="blue" class="dock-font-swatch">蓝色</button>
         </div>
+      </div>
       </div>
     </div>` : '';
 
@@ -513,7 +512,13 @@ export async function onRequest(context) {
       <div class="hidden min-[550px]:block">${horizontalHeaderContent}</div>`;
   }
 
-  const topRightActionsHtml = `<div class="fixed top-4 right-4 z-50 flex items-center gap-3">${themeIconHtml}${adminIconHtml}</div>`;
+  // 搜索栏开关（放大镜）放在右上角按钮组里，紧挨着主题切换按钮；功能不变
+  // （点一下收起/展开搜索栏，localStorage 保持），图标栏那行只剩圆和齿轮。
+  const searchIconHtml = `
+    <button id="searchToggleBtn" type="button" class="top-action-icon search-action-icon" title="隐藏搜索栏" aria-label="显示或隐藏搜索栏" aria-pressed="false">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+    </button>`;
+  const topRightActionsHtml = `<div class="fixed top-4 right-4 z-50 flex items-center gap-3">${themeIconHtml}${searchIconHtml}${adminIconHtml}</div>`;
   const leftTopActionHtml = `
     <div class="fixed top-4 left-4 z-50 ${mobileToggleVisibilityClass}">
       <button id="sidebarToggle" class="p-2 rounded-lg bg-white dark:bg-gray-800 shadow-md hover:bg-gray-100 dark:hover:bg-gray-700">
