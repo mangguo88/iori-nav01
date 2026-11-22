@@ -7,6 +7,74 @@
     const sidebarToggle = document.getElementById('sidebarToggle');
     const closeSidebar = document.getElementById('closeSidebar');
 
+    // ---- 窄窗口抽屉：鼠标靠近页面左右边缘自动滑出，移开自动滑回 ----
+    // 只在抽屉模式（<1024px）且有鼠标的设备上生效；宽屏侧栏常显，不动它；
+    // 触屏没有悬停，抽屉点按行为保持原样。监听从页面加载起就生效，不用刷新。
+    const EDGE_ZONE = 24; // 左右边缘触发区宽度 px
+    const HIDE_DELAY = 200; // 移开后隐藏延时 ms，防鼠标短暂越界时来回闪
+    const finePointer = window.matchMedia('(pointer: fine)');
+    const drawerQuery = window.matchMedia('(max-width: 1023px)');
+    let hoverOpen = false; // 当前是否由鼠标悬停打开
+    let hideTimer = null;
+
+    function edgeHoverEnabled() {
+      return finePointer.matches && drawerQuery.matches;
+    }
+
+    function clearHideTimer() {
+      if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
+    }
+
+    // 悬停滑出：只给侧栏加 open，不带遮罩、不锁 body 滚动，侧栏浮在内容上面
+    function showSidebarHover() {
+      if (!edgeHoverEnabled()) return;
+      clearHideTimer();
+      if (hoverOpen) return;
+      hoverOpen = true;
+      sidebar?.classList.add('open');
+    }
+
+    // 悬停滑回：延时后收起；点汉堡打开的（遮罩 open）不归这里管
+    function hideSidebarHover() {
+      if (!hoverOpen || hideTimer) return;
+      hideTimer = setTimeout(() => {
+        hideTimer = null;
+        hoverOpen = false;
+        if (!mobileOverlay?.classList.contains('open')) {
+          sidebar?.classList.remove('open');
+        }
+      }, HIDE_DELAY);
+    }
+
+    function onQueryChange(query, fn) {
+      if (typeof query.addEventListener === 'function') query.addEventListener('change', fn);
+      else if (typeof query.addListener === 'function') query.addListener(fn);
+    }
+
+    // 窗口从抽屉模式切到宽屏时，悬停打开的状态收回（宽屏侧栏常显，不留多余的 open）
+    onQueryChange(drawerQuery, () => {
+      if (drawerQuery.matches || !hoverOpen) return;
+      hoverOpen = false;
+      clearHideTimer();
+      if (!mobileOverlay?.classList.contains('open')) {
+        sidebar?.classList.remove('open');
+      }
+    });
+    // 指针从鼠标切到触屏时，悬停状态也收回
+    onQueryChange(finePointer, () => {
+      if (!finePointer.matches) { hoverOpen = false; clearHideTimer(); }
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!edgeHoverEnabled()) return;
+      const x = e.clientX;
+      const inEdgeZone = x <= EDGE_ZONE || x >= window.innerWidth - EDGE_ZONE;
+      // 鼠标在侧栏上面时算“没移开”，点分类不会刚移进去就藏回去
+      const overSidebar = !!(sidebar && e.target instanceof Node && sidebar.contains(e.target));
+      if (inEdgeZone || overSidebar) showSidebarHover();
+      else hideSidebarHover();
+    });
+
     function openSidebar() {
       sidebar?.classList.add('open');
       mobileOverlay?.classList.add('open');
@@ -14,6 +82,8 @@
     }
 
     function closeSidebarMenu() {
+      hoverOpen = false;
+      clearHideTimer();
       sidebar?.classList.remove('open');
       mobileOverlay?.classList.remove('open');
       document.body.style.overflow = '';
