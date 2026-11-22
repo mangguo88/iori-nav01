@@ -24,18 +24,69 @@
   flex-shrink: 0;
 }
 
-/* 顶栏永久固定：标题+副标题+搜索栏都在 header 里（手机版/桌面版两个版本
-   都在），header 钉住就一次性全固定、不滚走；下面内容（图标栏、卡片）向上滑
-   到它下面时被不透明实底挡住、自动隐藏。深色实底 #111827 与之前图标栏钉住
-   时的底色同色（用户是浅色模式+深色壁纸）；z-index 60 高于图标栏与卡片。
-   规则写在 style.css 里，盖掉模板 header 上的 bg-transparent 类。 */
+/* 顶栏永久固定 + 壁纸底：标题+副标题+搜索栏都在 header 里（手机版/桌面版两个版本
+   都在），header 钉住就一次性全固定、不滚走；下面内容（图标栏、卡片）向上滑到它
+   下面时被挡住、自动隐藏。
+   底不用深色块：header 的背景就是页面同一张壁纸——background-attachment: fixed
+   让壁纸相对视口定位，与 #fixed-background 里 object-fit: cover 的 img 严丝合缝，
+   看上去跟原来一样没有一块底；但它是不透明的，内容滑到下面照样被挡住。壁纸 URL
+   由 functions/index.js 以 --wallpaper-url 注入 :root。没填壁纸时走主题渐变
+   （meteor/landscape）或默认底色 #fdf8f3。 */
 #app-scroll > .main-content > header {
   position: sticky;
   top: 0;
   z-index: 60;
-  background-color: #111827;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  background-color: #fdf8f3;
+}
+/* 有自定义壁纸：header 画同一张壁纸（fixed 定位、cover、居中，与 fixed-background 对齐） */
+body.custom-wallpaper #app-scroll > .main-content > header {
+  background-image: var(--wallpaper-url);
+  background-attachment: fixed;
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-color: transparent;
+}
+/* 风格三 + 自定义壁纸：壁纸 img 本身是 0.8 透明度压在 #090b14 上，header 用 20% 同色
+   遮罩 + 同色底色还原同一效果，不然 header 那块会比周围壁纸亮一截。 */
+body.desktop-page-style3.custom-wallpaper #app-scroll > .main-content > header,
+body.mobile-page-style3.custom-wallpaper #app-scroll > .main-content > header {
+  background-image: linear-gradient(rgba(9, 11, 20, 0.2), rgba(9, 11, 20, 0.2)), var(--wallpaper-url);
+  background-color: #090b14;
+}
+/* 深色模式 + 自定义壁纸：页面壁纸上还有一层 60% 黑遮罩（html.dark body.custom-wallpaper::before），
+   header 也盖同一层，不然 header 那块会比周围亮；风格三那档再叠 20% #090b14 遮罩。 */
+html.dark body.custom-wallpaper #app-scroll > .main-content > header {
+  background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), var(--wallpaper-url);
+}
+html.dark body.desktop-page-style3.custom-wallpaper #app-scroll > .main-content > header,
+html.dark body.mobile-page-style3.custom-wallpaper #app-scroll > .main-content > header {
+  background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), linear-gradient(rgba(9, 11, 20, 0.2), rgba(9, 11, 20, 0.2)), var(--wallpaper-url);
+  background-color: #090b14;
+}
+/* 没壁纸的主题渐变：header 画同一套渐变（fixed 定位，与 fixed-background 对齐；山水
+   的两层山脊在视口底部，不在顶栏区域，只取天空渐变）。 */
+body.theme-meteor:not(.custom-wallpaper) #app-scroll > .main-content > header {
+  background-image:
+    radial-gradient(1.5px 1.5px at 12% 22%, rgba(255, 255, 255, 0.9), transparent 60%),
+    radial-gradient(1px 1px at 28% 68%, rgba(255, 255, 255, 0.7), transparent 60%),
+    radial-gradient(2px 2px at 45% 12%, rgba(255, 255, 255, 0.9), transparent 60%),
+    radial-gradient(1px 1px at 62% 38%, rgba(255, 255, 255, 0.6), transparent 60%),
+    radial-gradient(1.5px 1.5px at 78% 18%, rgba(255, 255, 255, 0.85), transparent 60%),
+    radial-gradient(1px 1px at 88% 55%, rgba(255, 255, 255, 0.7), transparent 60%),
+    radial-gradient(2px 2px at 8% 82%, rgba(255, 255, 255, 0.8), transparent 60%),
+    radial-gradient(1px 1px at 36% 88%, rgba(255, 255, 255, 0.6), transparent 60%),
+    radial-gradient(1.5px 1.5px at 55% 75%, rgba(255, 255, 255, 0.75), transparent 60%),
+    radial-gradient(1px 1px at 95% 28%, rgba(255, 255, 255, 0.8), transparent 60%),
+    radial-gradient(120px 120px at 82% 12%, rgba(226, 232, 255, 0.16), transparent 70%),
+    linear-gradient(180deg, #070b1d 0%, #0d1533 45%, #1b2a52 100%);
+  background-attachment: fixed;
+  background-color: #070b1d;
+}
+body.theme-landscape:not(.custom-wallpaper) #app-scroll > .main-content > header {
+  background-image: linear-gradient(180deg, #9fc6de 0%, #c8dcd9 42%, #e6e2c8 62%, #cfe0b8 100%);
+  background-attachment: fixed;
+  background-color: #9fc6de;
 }
 
 #app-scroll > .main-content > footer {
@@ -1880,6 +1931,22 @@ body .search-engine-option.active {
   .mobile-sidebar.open { transform: translateX(0); }
   .mobile-overlay { opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
   .mobile-overlay.open { opacity: 1; pointer-events: auto; }
+}
+
+/* 桌面窄窗口：有鼠标就不变抽屉（fe9d246 的 pointer:fine 路子）。
+   1024px 以下侧栏本来会平移藏起来变抽屉；但有鼠标的桌面设备窗口再窄也该一直显示
+   侧栏，只有触屏/手机（coarse pointer）才保留抽屉。内容区左边距跟着 --sidebar-w
+   留出侧栏宽度，不让侧栏盖住内容；抽屉用的遮罩、汉堡按钮、侧栏内 X 按钮在桌面下
+   直接禁掉，别留点了没反应的死按钮。桌面收起（#sidebar-toggle）那两条规则也延到
+   细指针下，宽屏收起后窗口缩窄仍保持收起状态。 */
+@media (pointer: fine) {
+  .mobile-sidebar { transform: none !important; }
+  .mobile-overlay { opacity: 0 !important; pointer-events: none !important; }
+  #sidebarToggle { display: none !important; }
+  #closeSidebar { display: none !important; }
+  .main-content { margin-left: var(--sidebar-w, 256px); }
+  #sidebar-toggle:checked ~ .sidebar { margin-left: calc(-1 * var(--sidebar-w, 256px)); }
+  #sidebar-toggle:checked ~ .main-content { margin-left: 0; }
 }
 
 .line-clamp-2 {

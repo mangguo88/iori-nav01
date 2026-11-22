@@ -579,7 +579,11 @@ export async function onRequest(context) {
   // 桌面网格列数：细指针（鼠标）下窗口缩窄也不切移动列数，style.css 里
   // @media (pointer: fine) 的 #sitesGrid 规则按这个变量强制列数。
   const desktopGridCols = ['3', '5', '6', '7', '8'].includes(String(S.layout_grid_cols)) ? Number(S.layout_grid_cols) : 4;
-  headInjections += `<style>:root { --card-padding: 1.25rem; --card-radius: ${cardRadius}px; --frosted-glass-blur: ${frostedBlur}px; --card-bg-opacity: ${cardBgOpacity}; --desktop-grid-cols: ${desktopGridCols}; ${mainColorVars} --card-scale: ${cardScale}; }@media (max-width: 767px) { :root { --card-radius: ${mobileCardRadius}px; --frosted-glass-blur: ${mobileFrostedBlur}px; --card-bg-opacity: ${mobileCardBgOpacity}; } }</style>`;
+  // 顶栏壁纸底：把壁纸 URL 也写进 :root 变量，style.css 里 sticky 的 header 用
+  // background-attachment: fixed 引用它，跟 #fixed-background 的 img 严丝合缝。
+  // safeWallpaperUrl 经 sanitizeUrl 只剩 http(s) 绝对地址，不含裸双引号，可安全放进 url("...")。
+  const wallpaperUrlVar = safeWallpaperUrl ? ` --wallpaper-url: url("${safeWallpaperUrl}");` : '';
+  headInjections += `<style>:root { --card-padding: 1.25rem; --card-radius: ${cardRadius}px; --frosted-glass-blur: ${frostedBlur}px; --card-bg-opacity: ${cardBgOpacity}; --desktop-grid-cols: ${desktopGridCols}; ${mainColorVars} --card-scale: ${cardScale};${wallpaperUrlVar} }@media (max-width: 767px) { :root { --card-radius: ${mobileCardRadius}px; --frosted-glass-blur: ${mobileFrostedBlur}px; --card-bg-opacity: ${mobileCardBgOpacity}; } }</style>`;
   // 卡片间距只在用户改过默认值（16）时才注入：不改时沿用现有的 gap-3/sm:gap-6
   // 与风格三 15px，首页外观与现在一模一样。
   const cardGap = normalizeCardGapValue(S.layout_card_gap);
