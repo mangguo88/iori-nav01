@@ -306,6 +306,72 @@
       }
     }
 
+    // ---- 左侧栏显示方式：树形 / 小舒（选择存 localStorage，默认小舒）----
+    const SIDEBAR_MODE_KEY = 'iori_sidebar_mode_v1';
+
+    function getSidebarMode() {
+      try {
+        return localStorage.getItem(SIDEBAR_MODE_KEY) === 'tree' ? 'tree' : 'botab';
+      } catch (e) { return 'botab'; }
+    }
+
+    function applySidebarMode(mode) {
+      const sidebar = document.getElementById('sidebar');
+      if (!sidebar) return;
+      sidebar.classList.toggle('sidebar-mode-tree', mode === 'tree');
+      sidebar.classList.toggle('sidebar-mode-botab', mode !== 'tree');
+      const botabBtn = document.getElementById('sidebarModeBotabBtn');
+      const treeBtn = document.getElementById('sidebarModeTreeBtn');
+      if (botabBtn) botabBtn.classList.toggle('is-active', mode !== 'tree');
+      if (treeBtn) treeBtn.classList.toggle('is-active', mode === 'tree');
+    }
+
+    function initSidebarMode() {
+      const mode = getSidebarMode();
+      applySidebarMode(mode);
+      const botabBtn = document.getElementById('sidebarModeBotabBtn');
+      const treeBtn = document.getElementById('sidebarModeTreeBtn');
+      const save = (next) => {
+        try { localStorage.setItem(SIDEBAR_MODE_KEY, next); } catch (e) { /* 隐私模式等写不进时静默忽略 */ }
+        applySidebarMode(next);
+      };
+      if (botabBtn) botabBtn.addEventListener('click', () => save('botab'));
+      if (treeBtn) treeBtn.addEventListener('click', () => save('tree'));
+    }
+
+    // ---- 胶囊形子分类：站内切换分类时按 window.IORI_CAPSULES 重绘 ----
+    function escapeCapsuleHtml(text) {
+      return String(text ?? '')
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    function updateCapsules(catalogId) {
+      const wrap = document.getElementById('subCapsules');
+      if (!wrap) return;
+      const map = window.IORI_CAPSULES || {};
+      const entry = (!catalogId ? null : map[String(catalogId)]) || null;
+      if (!entry || !entry.items || entry.items.length === 0) {
+        wrap.classList.add('hidden');
+        wrap.innerHTML = '';
+        return;
+      }
+      wrap.innerHTML = entry.items.map((item) => {
+        const isActive = entry.activeId !== null && entry.activeId !== undefined && String(item.id) === String(entry.activeId);
+        return `<a href="?catalog=${encodeURIComponent(String(item.id))}" data-id="${item.id}" data-full-name="${escapeCapsuleHtml(item.fullPath || item.name)}" title="${escapeCapsuleHtml(item.fullPath || item.name)}" class="sub-capsule${isActive ? ' is-active' : ''}">${escapeCapsuleHtml(item.name)}</a>`;
+      }).join('');
+      wrap.classList.remove('hidden');
+    }
+
+    // ---- 根目录书签横条：只在“全部”和“收藏夹栏”视图下显示 ----
+    function updateRootStripVisibility(catalogId) {
+      const strip = document.getElementById('rootStrip');
+      if (!strip) return;
+      const rootId = strip.getAttribute('data-root-catalog-id');
+      const show = !catalogId || String(catalogId) === String(rootId);
+      strip.classList.toggle('hidden', !show);
+    }
+
     document.addEventListener('click', async (e) => {
       const link = e.target.closest('a[href^="?catalog="]');
       if (!link) return;
@@ -450,6 +516,12 @@
 
       // 侧栏树：当前分类的祖先节点展开，保证高亮项可见
       if (catalogId) expandSidebarAncestors(catalogId);
+
+      // 根目录横条只在“全部”与“收藏夹栏”视图下显示
+      updateRootStripVisibility(catalogId);
+
+      // 胶囊形子分类跟着当前分类变
+      updateCapsules(catalogId);
     }
 
     function restoreLastCategory() {
@@ -500,6 +572,7 @@
 
     Home.updateNavigationState = updateNavigationState;
     initSidebarTree();
+    initSidebarMode();
     restoreLastCategory();
   };
 })();

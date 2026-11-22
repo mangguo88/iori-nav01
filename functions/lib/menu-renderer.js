@@ -131,6 +131,42 @@ export function renderSidebarTree(root, currentCatalogId) {
   return root.children.map((node) => _renderSidebarNode(node, currentCatalogId)).join('');
 }
 
+/**
+ * 渲染左侧栏小舒式列表（仿 BoTab 侧栏，只学展示形式）：
+ * 纯文字竖排，只列顶级文件夹——每个一级节点一行，紧接着列出它的一级子文件夹
+ * （如 收藏夹栏、VPS类、账号类、工具类……）；没有折叠、没有文件夹图标、
+ * 没有数量、不截断名字。当前分类或其祖先分类那一行变蓝。
+ * @param {object} root - buildCategoryPathTree 返回的路径树根节点
+ * @param {string} currentCatalogFullPath - 当前选中的分类完整路径（为空表示“全部”）
+ * @returns {string} HTML 字符串
+ */
+export function renderSidebarBotab(root, currentCatalogFullPath) {
+  if (!root || !root.children || root.children.length === 0) return '';
+  const currentPath = String(currentCatalogFullPath || '').trim();
+  const isActivePath = (fullPath) => currentPath !== '' && (currentPath === fullPath || currentPath.startsWith(fullPath + ' / '));
+  const rows = [];
+  const pushRow = (node) => {
+    const safeFull = escapeHTML(node.fullPath);
+    const shortName = escapeHTML(node.name);
+    const active = isActivePath(node.fullPath);
+    const activeClass = active
+      ? 'bg-secondary-100 text-primary-700 dark:bg-gray-800 dark:text-primary-400'
+      : 'hover:bg-gray-100 text-gray-700 dark:text-gray-300 dark:hover:bg-gray-800';
+    if (node.id !== null && node.id !== undefined) {
+      rows.push(`<div class="sidebar-botab-row"><a href="?catalog=${encodeURIComponent(String(node.id))}" data-id="${node.id}" data-full-name="${safeFull}" title="${safeFull}" class="sidebar-botab-link flex items-center px-3 py-2 rounded-lg flex-1 min-w-0 transition-colors duration-200 ${activeClass}"><span class="sidebar-botab-name">${shortName}</span></a></div>`);
+    } else {
+      rows.push(`<div class="sidebar-botab-row"><span class="sidebar-botab-link sidebar-botab-group flex items-center px-3 py-2 rounded-lg flex-1 min-w-0 text-gray-500 dark:text-gray-400" title="${safeFull}"><span class="sidebar-botab-name">${shortName}</span></span></div>`);
+    }
+  };
+  for (const node of root.children) {
+    pushRow(node);
+    if (node.children && node.children.length > 0) {
+      for (const child of node.children) pushRow(child);
+    }
+  }
+  return rows.join('');
+}
+
 function _renderSidebarNode(node, currentCatalogId) {
   const safeFull = escapeHTML(node.fullPath);
   const shortName = escapeHTML(node.name);

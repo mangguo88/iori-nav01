@@ -3,9 +3,9 @@ import { isAdminAuthenticated, getHomeCacheKey, clearHomeCacheDirtyIfValue, mark
 import { FONT_MAP } from './constants';
 import { escapeHTML, sanitizeUrl, normalizeSortOrder, getStyleStr, sanitizeStyleColor } from './lib/utils';
 import { getSettingsKeys, parseSettings } from './lib/settings-parser';
-import { renderHorizontalMenu, renderSidebarTree, shortCategoryName, buildCategoryPathTree } from './lib/menu-renderer';
+import { renderHorizontalMenu, renderSidebarTree, renderSidebarBotab, shortCategoryName, buildCategoryPathTree } from './lib/menu-renderer';
 import { renderSiteCards, renderEmptyState } from './lib/card-renderer';
-import { buildCardHydrationState } from './lib/card-model';
+import { buildCardHydrationState, buildCardViewModel } from './lib/card-model';
 import { ensureSchemaReady } from './lib/schema-migration';
 import { resolveWallpaperUrl } from './lib/wallpaper-defaults';
 
@@ -298,6 +298,78 @@ export async function onRequest(context) {
     </div>`;
   const horizontalCatalogMarkup = horizontalAllLink + renderHorizontalMenu(rootCategories, currentCatalogName);
   const catalogLinkMarkup = renderSidebarTree(sidebarCategoryTree, catalogExists ? requestedCatalogId : null);
+  const catalogBotabMarkup = renderSidebarBotab(sidebarCategoryTree, currentCatalogName);
+
+  // === 9b. 收藏夹栏根目录书签圆形图标栏（仿 BoTab 圆形图标栏，只学展示形式）===
+  // “收藏夹栏根目录、没进任何子文件夹” = catelog 恰好等于“收藏夹栏”那个分类
+  // 下的书签（先按名字找到分类，再按 catelog_id 匹配书签，不按名字前缀匹配）。
+  // 只在“全部”和“收藏夹栏”两个视图下显示，其它分类视图不显示。
+  const rootCategory = categories.find((c) => String(c.catelog || '').trim() === '收藏夹栏') || null;
+  const rootCategoryId = rootCategory ? rootCategory.id : null;
+  const rootSites = rootCategoryId !== null
+    ? allSites.filter((site) => site.catelog_id === rootCategoryId)
+    : [];
+  const showRootStrip = rootSites.length > 0 && (!catalogExists || requestedCatalogId === rootCategoryId);
+  const rootStripHtml = showRootStrip ? `
+    <div id="rootStrip" class="root-dock" data-root-catalog-id="${rootCategoryId}">
+      <div class="root-dock-head"><span class="root-dock-label">收藏夹栏根目录 · 未归类</span><span class="root-dock-count">${rootSites.length}</span></div>
+      <div class="root-dock-items">${rootSites.map((site) => {
+        const card = buildCardViewModel(site);
+        const iconHtml = card.logoUrlHtml
+          ? `<img src="${card.logoUrlHtml}" alt="" width="64" height="64" class="root-dock-icon-img" loading="lazy" decoding="async" onerror="this.style.display='none';var f=this.parentElement.querySelector('.root-dock-icon-fallback');if(f){f.style.display='flex';}"><span class="root-dock-icon-fallback" style="display:none;">${card.cardInitialHtml}</span>`
+          : `<span class="root-dock-icon-fallback">${card.cardInitialHtml}</span>`;
+        return `<a href="${card.urlHtml || '#'}" ${card.hasValidUrl ? 'target="_blank" rel="noopener noreferrer"' : ''} class="root-dock-item" title="${card.nameHtml}"><span class="root-dock-circle">${iconHtml}</span><span class="root-dock-name">${card.nameHtml}</span></a>`;
+      }).join('')}</div>
+    </div>` : '';
+
+  // === 9c. 胶囊形子分类（仿 BoTab 标题下那排胶囊，只学展示形式）===
+  // 当前分类有子文件夹 → 胶囊就是它的子文件夹（都不选中）；
+  // 当前分类是叶子、但有父文件夹 → 胶囊是同级兄弟文件夹，当前这一个变蓝；
+  // 全部视图或既无子文件夹又无父文件夹 → 不显示。
+  function findTreeNodeWithParent(root, id) {
+    const stack = [{ node: root, parent: null }];
+    while (stack.length > 0) {
+      const { node, parent } = stack.pop();
+      if (node.id !== null && node.id !== undefined && String(node.id) === String(id)) return { node, parent };
+      for (const child of node.children || []) stack.push({ node: child, parent: node });
+    }
+    return null;
+  }
+  const childCapsuleItems = (node) => (node.children || [])
+    .filter((c) => c.id !== null && c.id !== undefined)
+    .map((c) => ({ id: c.id, name: shortCategoryName(c.fullPath), fullPath: c.fullPath }));
+  // 每个分类的胶囊表（供前端站内切换分类时重绘胶囊行；与 SSR 同一套规则）
+  const capsuleMap = {};
+  const buildCapsuleEntry = (node, parent) => {
+    const ownChildren = childCapsuleItems(node);
+    if (ownChildren.length > 0) return { items: ownChildren, activeId: null };
+    if (parent) {
+      const siblings = childCapsuleItems(parent);
+      if (siblings.length > 0) return { items: siblings, activeId: node.id };
+    }
+    return null;
+  };
+  const collectCapsuleEntries = (node, parent) => {
+    if (node.id !== null && node.id !== undefined) {
+      const entry = buildCapsuleEntry(node, parent);
+      if (entry) capsuleMap[String(node.id)] = entry;
+    }
+    for (const child of node.children || []) collectCapsuleEntries(child, node);
+  };
+  collectCapsuleEntries(sidebarCategoryTree, null);
+  let subCapsuleEntry = null;
+  if (catalogExists) {
+    const found = findTreeNodeWithParent(sidebarCategoryTree, requestedCatalogId);
+    if (found) subCapsuleEntry = buildCapsuleEntry(found.node, found.parent);
+  }
+  const renderCapsules = (entry) => {
+    if (!entry || !entry.items || entry.items.length === 0) return '';
+    return entry.items.map((item) => {
+      const isActive = entry.activeId !== null && entry.activeId !== undefined && String(item.id) === String(entry.activeId);
+      return `<a href="?catalog=${encodeURIComponent(String(item.id))}" data-id="${item.id}" data-full-name="${escapeHTML(item.fullPath)}" title="${escapeHTML(item.fullPath)}" class="sub-capsule${isActive ? ' is-active' : ''}">${escapeHTML(item.name)}</a>`;
+    }).join('');
+  };
+  const subCapsulesHtml = `<div id="subCapsules" class="sub-capsules${subCapsuleEntry ? '' : ' hidden'}">${renderCapsules(subCapsuleEntry)}</div>`;
 
   // === 10. 生成站点卡片 HTML ===
   let sitesGridMarkup = sites.length > 0
@@ -621,12 +693,13 @@ export async function onRequest(context) {
   // - 字面量匹配：避免未来模板给 <script> 加 defer/type 等属性时正则静默失配
   // - 函数形式 replacement：规避用户数据中可能含 $&、$1 等被当作 back-reference
   const mainJsMarker = '<script src="/js/main.js';
+  const safeCapsulesJson = JSON.stringify(capsuleMap).replace(/</g, '\\u003c');
   if (!html.includes(mainJsMarker)) {
     console.error('Card hydration injection skipped: main.js marker not found in template');
   } else {
     html = html.replace(
       mainJsMarker,
-      () => `<script>window.IORI_SITES=${safeSitesJson};window.IORI_CARD_CONFIGS=${safeCardConfigsJson};window.IORI_LAYOUT_CONFIG=${safeLayoutConfigJson};</script>\n  ${mainJsMarker}`
+      () => `<script>window.IORI_SITES=${safeSitesJson};window.IORI_CARD_CONFIGS=${safeCardConfigsJson};window.IORI_LAYOUT_CONFIG=${safeLayoutConfigJson};window.IORI_CAPSULES=${safeCapsulesJson};</script>\n  ${mainJsMarker}`
     );
   }
 
@@ -647,6 +720,9 @@ export async function onRequest(context) {
     'OG_IMAGE_URL': escapeHTML(ogImageUrl),
     'FOOTER_TEXT': escapeHTML(footerText),
     'CATALOG_LINKS': catalogLinkMarkup,
+    'CATALOG_LINKS_BOTAB': catalogBotabMarkup,
+    'ROOT_STRIP': rootStripHtml,
+    'SUB_CAPSULES': subCapsulesHtml,
     'SUBMISSION_CLASS': submissionClass,
     'HEADING_TEXT': headingText,
     'HEADING_DEFAULT': headingDefaultAttr,

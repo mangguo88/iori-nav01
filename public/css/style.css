@@ -2406,3 +2406,235 @@ body.theme-landscape .site-card.style-3:not(.frosted-glass-effect) .site-title {
   color: #9ca3af;
   background-color: #374151;
 }
+
+/* ===== 收藏夹栏根目录圆形图标栏（仿 BoTab 圆形图标栏，只学展示形式）===== */
+.root-dock {
+  max-width: 80rem;
+  margin: 1rem auto 0;
+  padding: 0.875rem 1rem 1rem;
+  background-color: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(147, 197, 253, 0.35);
+  border-radius: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  backdrop-filter: blur(4px);
+}
+.dark .root-dock {
+  background-color: rgba(31, 41, 55, 0.85);
+  border-color: #374151;
+}
+.root-dock.hidden {
+  display: none;
+}
+.root-dock-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+.root-dock-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #374151;
+  white-space: nowrap;
+}
+.dark .root-dock-label {
+  color: #d1d5db;
+}
+.root-dock-count {
+  min-width: 1.25rem;
+  padding: 0 0.375rem;
+  text-align: center;
+  font-size: 0.6875rem;
+  line-height: 1.125rem;
+  color: #6b7280;
+  background-color: #f3f4f6;
+  border-radius: 9999px;
+}
+.dark .root-dock-count {
+  color: #9ca3af;
+  background-color: #374151;
+}
+.root-dock-items {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  padding: 0.25rem 0.125rem 0.5rem;
+}
+.root-dock-item {
+  flex-shrink: 0;
+  width: 4.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.375rem;
+}
+.root-dock-circle {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 9999px;
+  background-color: #fff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.root-dock-item:hover .root-dock-circle {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+.dark .root-dock-circle {
+  background-color: #374151;
+  border-color: #4b5563;
+}
+.root-dock-icon-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.root-dock-icon-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #2563eb;
+  color: #fff;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+.root-dock-name {
+  width: 100%;
+  text-align: center;
+  font-size: 0.75rem;
+  line-height: 1.25;
+  color: #374151;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+}
+.dark .root-dock-name {
+  color: #d1d5db;
+}
+
+/* ===== 左侧栏小舒模式（仿 BoTab 侧栏，只学展示形式）===== */
+.sidebar-botab-row {
+  margin-bottom: 0.125rem;
+}
+.sidebar-botab-link {
+  color: inherit;
+}
+.sidebar-botab-name {
+  flex: 1;
+  min-width: 0;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  line-height: 1.375;
+  font-size: 0.875rem;
+}
+.sidebar-botab-group {
+  cursor: default;
+}
+#sidebar.sidebar-mode-botab #sidebarTreeWrap {
+  display: none;
+}
+#sidebar.sidebar-mode-tree #sidebarBotabWrap {
+  display: none;
+}
+#sidebar.sidebar-mode-botab #sidebarExpandCollapseWrap {
+  display: none;
+}
+/* 小舒模式：回到顶部 / 全部收藏两行也不要图标与数量，当前项只变蓝、不加背景 */
+#sidebar.sidebar-mode-botab .sidebar-top-row svg {
+  display: none;
+}
+#sidebar.sidebar-mode-botab .sidebar-top-row .sidebar-tree-count {
+  display: none;
+}
+#sidebar.sidebar-mode-botab .sidebar-top-row a:hover,
+#sidebar.sidebar-mode-botab .sidebar-top-row button:hover {
+  background-color: transparent;
+}
+#sidebar.sidebar-mode-botab .sidebar-tree-link.bg-secondary-100,
+#sidebar.sidebar-mode-botab .sidebar-botab-link.bg-secondary-100 {
+  background-color: transparent;
+}
+.dark #sidebar.sidebar-mode-botab .sidebar-tree-link.bg-secondary-100,
+.dark #sidebar.sidebar-mode-botab .sidebar-botab-link.bg-secondary-100 {
+  background-color: transparent;
+}
+.sidebar-mode-btn {
+  color: #6b7280;
+}
+.dark .sidebar-mode-btn {
+  color: #9ca3af;
+}
+.sidebar-mode-btn.is-active {
+  background-color: #fff;
+  color: #111827;
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+.dark .sidebar-mode-btn.is-active {
+  background-color: #374151;
+  color: #f3f4f6;
+}
+/* 手机抽屉里的侧栏不动：始终显示树形 */
+@media (max-width: 1023px) {
+  #sidebar #sidebarTreeWrap {
+    display: block !important;
+  }
+  #sidebar #sidebarBotabWrap {
+    display: none !important;
+  }
+  #sidebar #sidebarExpandCollapseWrap {
+    display: flex !important;
+  }
+}
+
+/* ===== 胶囊形子分类（仿 BoTab 标题下胶囊，只学展示形式）===== */
+.sub-capsules {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+.sub-capsules.hidden {
+  display: none;
+}
+.sub-capsule {
+  display: inline-block;
+  padding: 0.375rem 1rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: #374151;
+  background-color: rgba(229, 231, 235, 0.9);
+  border-radius: 9999px;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.sub-capsule:hover {
+  background-color: #d1d5db;
+}
+.sub-capsule.is-active {
+  background-color: #3b82f6;
+  color: #fff;
+}
+.dark .sub-capsule {
+  color: #d1d5db;
+  background-color: rgba(55, 65, 81, 0.9);
+}
+.dark .sub-capsule:hover {
+  background-color: #4b5563;
+}
+.dark .sub-capsule.is-active {
+  background-color: #3b82f6;
+  color: #fff;
+}
