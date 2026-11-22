@@ -576,7 +576,10 @@ export async function onRequest(context) {
   const mainColorScale = MAIN_COLOR_SCALES[S.layout_main_color] || MAIN_COLOR_SCALES.green;
   const mainColorVars = Object.entries(mainColorScale).map(([step, hex]) => `--main-${step}: ${hex};`).join(' ');
   const cardScale = normalizeCardScaleValue(S.layout_card_scale);
-  headInjections += `<style>:root { --card-padding: 1.25rem; --card-radius: ${cardRadius}px; --frosted-glass-blur: ${frostedBlur}px; --card-bg-opacity: ${cardBgOpacity}; ${mainColorVars} --card-scale: ${cardScale}; }@media (max-width: 767px) { :root { --card-radius: ${mobileCardRadius}px; --frosted-glass-blur: ${mobileFrostedBlur}px; --card-bg-opacity: ${mobileCardBgOpacity}; } }</style>`;
+  // 桌面网格列数：细指针（鼠标）下窗口缩窄也不切移动列数，style.css 里
+  // @media (pointer: fine) 的 #sitesGrid 规则按这个变量强制列数。
+  const desktopGridCols = ['3', '5', '6', '7', '8'].includes(String(S.layout_grid_cols)) ? Number(S.layout_grid_cols) : 4;
+  headInjections += `<style>:root { --card-padding: 1.25rem; --card-radius: ${cardRadius}px; --frosted-glass-blur: ${frostedBlur}px; --card-bg-opacity: ${cardBgOpacity}; --desktop-grid-cols: ${desktopGridCols}; ${mainColorVars} --card-scale: ${cardScale}; }@media (max-width: 767px) { :root { --card-radius: ${mobileCardRadius}px; --frosted-glass-blur: ${mobileFrostedBlur}px; --card-bg-opacity: ${mobileCardBgOpacity}; } }</style>`;
   // 卡片间距只在用户改过默认值（16）时才注入：不改时沿用现有的 gap-3/sm:gap-6
   // 与风格三 15px，首页外观与现在一模一样。
   const cardGap = normalizeCardGapValue(S.layout_card_gap);

@@ -942,6 +942,16 @@ html.dark .style3-hover-desc {
   }
 }
 
+/* 桌面（细指针：鼠标）下网格列数只跟用户设置走：窗口缩窄时 Tailwind 的
+   md:/lg: 响应式列数本来会掉到 3 列，这里强制按桌面列数渲染；
+   --desktop-grid-cols 由服务端按 layout_grid_cols 注入 :root。
+   粗指针（手机/平板）不走这条，仍按宽度切移动列数。 */
+@media (pointer: fine) {
+  #sitesGrid {
+    grid-template-columns: repeat(var(--desktop-grid-cols, 5), minmax(0, 1fr)) !important;
+  }
+}
+
 /* 复制提示 */
 @keyframes fadeInOut {
   0% { opacity: 0; transform: translateY(10px); }
@@ -2453,6 +2463,15 @@ body.theme-landscape .site-card.style-3:not(.frosted-glass-effect) .site-title {
   padding: 0.25rem 0.5rem 0.5rem;
   background: transparent;
   border: 0;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+/* 钉住时加深色实底：平时透明浮在壁纸上；滚到顶部钉住后卡片从栏下划过时被挡住，
+   不与圆下面的标签字重叠（标签字是白色，实底必须用深色）；滚回顶部恢复透明。
+   is-stuck 由 home-category-nav.js 监听 #app-scroll 滚动加/去。 */
+.root-dock.is-stuck {
+  background-color: #111827;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
 }
 /* 对齐方式（默认居中 = 上面那行 margin auto；居左/居右改 margin；记 localStorage） */
 html[data-dock-align="left"] .root-dock { margin-left: 0; margin-right: auto; }

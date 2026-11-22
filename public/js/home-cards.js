@@ -33,6 +33,11 @@
     const cardAnimationClasses = cardAnimationTypes.map(type => `card-anim-${type}`);
     const reducedMotionQuery = window.matchMedia?.('(prefers-reduced-motion: reduce)');
     const mobileCardQuery = window.matchMedia?.('(max-width: 767px)');
+    // 细指针（鼠标）= 桌面浏览器：窗口缩窄也不切移动布局，列数与卡片样式跟桌面设置走；
+    // 只有窄屏 + 粗指针（手机/平板）才用移动配置。
+    // 注：下面悬停面板另有一个同名用途的 finePointerQuery（带 hover 条件），这里用
+    // 不同名字，避免重复声明；它在 getCardDevice 首次调用前就已初始化。
+    const desktopPointerQuery = window.matchMedia?.('(pointer: fine)');
     let activeCardDevice = '';
     let cardConfig = getActiveCardConfig();
     let activeRenderedCatalogId = window.IORI_LAYOUT_CONFIG?.ssrCatalogId && window.IORI_LAYOUT_CONFIG.ssrCatalogId !== 'all'
@@ -40,6 +45,7 @@
       : null;
 
     function getCardDevice() {
+      if (desktopPointerQuery?.matches) return 'desktop';
       return mobileCardQuery?.matches ? 'mobile' : 'desktop';
     }
 
