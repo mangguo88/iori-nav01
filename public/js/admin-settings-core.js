@@ -183,18 +183,50 @@
   }
 
   function initFormEvents(refs) {
-    // 主题与主色是点选按钮：点谁谁加 .active，保存时读 .active（见 form.js）
+    // 主题与主色是点选按钮：点谁谁加 .active，保存时读 .active（见 form.js）；
+    // 点选同时立刻写回 currentSettings 并重渲染左侧预览，不用等保存。
     document.querySelectorAll('.theme-option').forEach(btn => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('.theme-option').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
+        currentSettings.layout_theme = btn.dataset.theme || 'default';
+        ns.preview?.scheduleFullPreviewRender?.();
       });
     });
     document.querySelectorAll('.main-color-option').forEach(btn => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('.main-color-option').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
+        currentSettings.layout_main_color = btn.dataset.color || 'green';
+        ns.preview?.scheduleFullPreviewRender?.();
       });
+    });
+
+    // 卡片缩放 / 间距滑杆、条形开关、卡片背景透明度滑杆（桌面 + 移动）：
+    // 以前改了只在保存后生效，预览不动；现在边拖边写回 currentSettings 并重渲染预览。
+    refs.cardScaleRange?.addEventListener('input', () => {
+      if (refs.cardScaleValue) refs.cardScaleValue.textContent = refs.cardScaleRange.value;
+      currentSettings.layout_card_scale = refs.cardScaleRange.value;
+      ns.preview?.scheduleFullPreviewRender?.();
+    });
+    refs.cardGapRange?.addEventListener('input', () => {
+      if (refs.cardGapValue) refs.cardGapValue.textContent = refs.cardGapRange.value;
+      currentSettings.layout_card_gap = refs.cardGapRange.value;
+      ns.preview?.scheduleFullPreviewRender?.();
+    });
+    refs.stripCardsSwitch?.addEventListener('change', () => {
+      currentSettings.layout_strip_cards = !!refs.stripCardsSwitch.checked;
+      ns.preview?.scheduleFullPreviewRender?.();
+    });
+    refs.cardBgOpacityRange?.addEventListener('input', () => {
+      if (refs.cardBgOpacityValue) refs.cardBgOpacityValue.textContent = refs.cardBgOpacityRange.value;
+      currentSettings.layout_card_bg_opacity = refs.cardBgOpacityRange.value;
+      ns.preview?.scheduleFullPreviewRender?.();
+    });
+    refs.mobileCardBgOpacityRange?.addEventListener('input', () => {
+      if (refs.mobileCardBgOpacityValue) refs.mobileCardBgOpacityValue.textContent = refs.mobileCardBgOpacityRange.value;
+      currentSettings.mobile_layout_card_bg_opacity = refs.mobileCardBgOpacityRange.value;
+      ns.preview?.scheduleFullPreviewRender?.();
     });
 
     refs.providerSelector?.addEventListener('change', () => {

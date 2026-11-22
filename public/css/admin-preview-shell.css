@@ -170,6 +170,44 @@
   opacity: 1;
 }
 
+/* 主题背景（没填自定义壁纸时生效，与首页 #fixed-background.theme-bg-* 同一套纯 CSS 渐变；
+   填了壁纸时渲染会用内联 backgroundImage 盖掉这里，壁纸优先，与首页一致） */
+.home-live-preview.preview-theme-meteor .home-live-preview-bg {
+  background-color: #070b1d;
+  background-image:
+    radial-gradient(1.5px 1.5px at 12% 22%, rgba(255, 255, 255, 0.9), transparent 60%),
+    radial-gradient(1px 1px at 28% 68%, rgba(255, 255, 255, 0.7), transparent 60%),
+    radial-gradient(2px 2px at 45% 12%, rgba(255, 255, 255, 0.9), transparent 60%),
+    radial-gradient(1px 1px at 62% 38%, rgba(255, 255, 255, 0.6), transparent 60%),
+    radial-gradient(1.5px 1.5px at 78% 18%, rgba(255, 255, 255, 0.85), transparent 60%),
+    radial-gradient(1px 1px at 88% 55%, rgba(255, 255, 255, 0.7), transparent 60%),
+    radial-gradient(2px 2px at 8% 82%, rgba(255, 255, 255, 0.8), transparent 60%),
+    radial-gradient(1px 1px at 36% 88%, rgba(255, 255, 255, 0.6), transparent 60%),
+    radial-gradient(1.5px 1.5px at 55% 75%, rgba(255, 255, 255, 0.75), transparent 60%),
+    radial-gradient(1px 1px at 95% 28%, rgba(255, 255, 255, 0.8), transparent 60%),
+    radial-gradient(120px 120px at 82% 12%, rgba(226, 232, 255, 0.16), transparent 70%),
+    linear-gradient(180deg, #070b1d 0%, #0d1533 45%, #1b2a52 100%);
+}
+.home-live-preview.preview-theme-landscape .home-live-preview-bg {
+  background: linear-gradient(180deg, #9fc6de 0%, #c8dcd9 42%, #e6e2c8 62%, #cfe0b8 100%);
+}
+.home-live-preview.preview-theme-landscape .home-live-preview-bg::before {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 46%;
+  background: linear-gradient(180deg, #7d9bb5, #5f7f9e);
+  clip-path: polygon(0 62%, 12% 30%, 24% 58%, 36% 22%, 48% 55%, 60% 28%, 72% 60%, 84% 34%, 100% 58%, 100% 100%, 0 100%);
+}
+.home-live-preview.preview-theme-landscape .home-live-preview-bg::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 30%;
+  background: linear-gradient(180deg, #6d8f6a, #4f7a52);
+  clip-path: polygon(0 55%, 15% 25%, 30% 60%, 45% 18%, 60% 55%, 78% 28%, 100% 52%, 100% 100%, 0 100%);
+}
+
 .home-live-preview.is-horizontal .live-preview-sidebar {
   display: none;
 }

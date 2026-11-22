@@ -76,6 +76,16 @@
       })(),
       bgBlur: !!refs.bgBlurSwitch?.checked,
       bgBlurIntensity: shared.getPreviewInputValueOrDefault(refs.bgBlurIntensityRange, current.layout_bg_blur_intensity, '0'),
+      // 主题 / 主色 / 卡片缩放 / 间距 / 条形 / 背景透明度：以前渲染不读它们，
+      // 改了只在保存后才生效；现在点选/拖动时 core.js 已实时写回 currentSettings，这里直接读。
+      theme: document.querySelector('.theme-option.active')?.dataset.theme || current.layout_theme || 'default',
+      mainColor: document.querySelector('.main-color-option.active')?.dataset.color || current.layout_main_color || 'green',
+      cardScale: shared.getPreviewInputValueOrDefault(refs.cardScaleRange, current.layout_card_scale, '100'),
+      cardGap: shared.getPreviewInputValueOrDefault(refs.cardGapRange, current.layout_card_gap, '16'),
+      stripCards: !!refs.stripCardsSwitch?.checked,
+      cardBgOpacity: isMobilePreview
+        ? shared.getPreviewInputValueOrDefault(refs.mobileCardBgOpacityRange, current.mobile_layout_card_bg_opacity, '100')
+        : shared.getPreviewInputValueOrDefault(refs.cardBgOpacityRange, current.layout_card_bg_opacity, '100'),
       titleFont: shared.getPreviewInputValue(refs.homeTitleFontInput, current.home_title_font || ''),
       titleSize: shared.getPreviewInputValue(refs.homeTitleSizeInput, current.home_title_size || ''),
       titleColor: shared.getPreviewInputValue(refs.homeTitleColorInput, current.home_title_color || ''),
@@ -287,6 +297,20 @@
     root.style.setProperty('--preview-frosted-blur', `${frostedBlur}px`);
     root.style.setProperty('--preview-bg-blur', settings.bgBlur ? `${Number(settings.bgBlurIntensity) || 0}px` : '0px');
     root.style.setProperty('--preview-bg-scale', settings.bgBlur ? '1.04' : '1');
+    // 主题 / 主色 / 缩放 / 间距 / 条形 / 透明度应用到预览根上（只影响 #homeLivePreview 里的预览）
+    root.classList.toggle('preview-theme-meteor', settings.theme === 'meteor');
+    root.classList.toggle('preview-theme-landscape', settings.theme === 'landscape');
+    root.classList.toggle('preview-strip-cards', !!settings.stripCards);
+    const previewCardScale = Math.min(120, Math.max(80, Number(settings.cardScale) || 100)) / 100;
+    root.style.setProperty('--preview-card-scale', String(previewCardScale));
+    const previewCardGap = Math.min(24, Math.max(8, Number(settings.cardGap) || 16));
+    root.style.setProperty('--preview-card-gap', `${previewCardGap}px`);
+    const previewBgOpacity = Math.min(100, Math.max(0, Number(settings.cardBgOpacity) || 100)) / 100;
+    root.style.setProperty('--card-bg-opacity', String(previewBgOpacity));
+    const previewMainScale = (shared.MAIN_COLOR_SCALES && shared.MAIN_COLOR_SCALES[settings.mainColor]) || (shared.MAIN_COLOR_SCALES && shared.MAIN_COLOR_SCALES.green);
+    if (previewMainScale) {
+      Object.entries(previewMainScale).forEach(([step, hex]) => root.style.setProperty(`--main-${step}`, hex));
+    }
 
     if (wallpaper) {
       wallpaper.style.backgroundImage = settings.wallpaper ? `url("${settings.wallpaper.replace(/"/g, '%22')}")` : '';

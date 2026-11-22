@@ -840,11 +840,25 @@ html.dark .style3-hover-panel.frosted {
   background-color: rgba(30, 41, 59, calc(0.88 * var(--card-bg-opacity, 1)));
   border-color: rgba(255, 255, 255, 0.12);
 }
-body.custom-wallpaper .style3-hover-panel.frosted,
-html.dark body.custom-wallpaper .style3-hover-panel.frosted {
+/* 自定义壁纸 + 浅色模式时，毛玻璃放大窗用浅底（与卡片在壁纸下的浅色玻璃底一致）；
+   深色模式 / 星空主题时不走这条，落到上面那条深色玻璃底，白字才看得清。 */
+html:not(.dark) body.custom-wallpaper:not(.theme-meteor) .style3-hover-panel.frosted {
   background-color: rgba(255, 255, 255, calc(0.3 * var(--card-bg-opacity, 1)));
   border-color: rgba(255, 255, 255, 0.2);
 }
+/* 星空主题（深色）时放大窗跟卡片一样用深底白字：卡片在 body.theme-meteor 下标题
+   就是白字，放大窗以前没有这组规则，在星空主题下会按浅色模式出深色字，与卡片不一致。 */
+body.theme-meteor .style3-hover-panel {
+  background-color: rgba(31, 41, 55, var(--card-bg-opacity, 1));
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.45);
+}
+body.theme-meteor .style3-hover-panel.frosted {
+  background-color: rgba(30, 41, 59, calc(0.88 * var(--card-bg-opacity, 1)));
+  border-color: rgba(255, 255, 255, 0.12);
+}
+body.theme-meteor .style3-hover-title { color: #f3f4f6; }
+body.theme-meteor .style3-hover-desc { color: #9ca3af; }
 .style3-hover-head {
   display: flex;
   align-items: center;
@@ -2521,6 +2535,10 @@ html[data-dock-align="right"] .root-dock { margin-left: auto; margin-right: 0; }
 .dark .root-dock-name {
   color: #d1d5db;
 }
+/* 图标栏字体颜色（齿轮面板里选，记 localStorage；默认档不写规则，走上面两条） */
+html[data-dock-font-color="white"] .root-dock-name { color: #ffffff; }
+html[data-dock-font-color="gray"] .root-dock-name { color: #374151; }
+html[data-dock-font-color="blue"] .root-dock-name { color: #2563eb; }
 
 /* ===== 图标栏设置：最右端小齿轮 + 点开的小浮层（对齐/大小/间距）===== */
 .root-dock-settings-btn {
@@ -2579,6 +2597,14 @@ html[data-dock-align="right"] .root-dock { margin-left: auto; margin-right: 0; }
 .root-dock-settings-row span { font-size: 0.75rem; color: #6b7280; }
 .dark .root-dock-settings-row span { color: #9ca3af; }
 .root-dock-settings-panel input[type="range"] { width: 100%; }
+/* 字体颜色小色板：每个按钮用自己的颜色预览，当前选中的加蓝边（与侧栏字体色板同一套样式） */
+.root-dock-font-swatches { display: flex; gap: 0.375rem; }
+.dock-font-swatch { flex: 1; padding: 0.25rem 0; border-radius: 0.375rem; border: 1px solid #d1d5db; background-color: #fff; color: #374151; font-size: 0.8125rem; cursor: pointer; }
+.dark .dock-font-swatch { background-color: #374151; border-color: #4b5563; color: #e5e7eb; }
+.dock-font-swatch[data-dock-font-color="gray"] { background-color: #374151; color: #f9fafb; }
+.dock-font-swatch[data-dock-font-color="blue"] { background-color: #2563eb; border-color: #1d4ed8; color: #ffffff; }
+.dock-font-swatch[data-dock-font-color="white"] { background-color: #ffffff; color: #9ca3af; }
+.dock-font-swatch.is-active { border-color: #3b82f6; box-shadow: 0 0 0 1px #3b82f6; font-weight: 600; }
 
 /* ===== 左侧栏小舒模式（仿 BoTab 侧栏，只学展示形式）===== */
 .sidebar-botab-row {

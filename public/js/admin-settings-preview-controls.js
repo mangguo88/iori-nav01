@@ -264,6 +264,7 @@
       refs.homeHitokotoSizeInput,
       refs.homeHitokotoColorInput,
       refs.homeDefaultCategorySelect,
+      refs.homeRememberLastCategorySwitch,
       refs.customWallpaperInput,
       refs.bgBlurSwitch,
       refs.bgBlurIntensityRange,

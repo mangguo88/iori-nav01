@@ -329,6 +329,13 @@ export async function onRequest(context) {
         <input id="dockSizeRange" type="range" min="48" max="80" step="2" value="64" class="w-full accent-blue-500" aria-label="图标大小">
         <div class="root-dock-settings-row"><label for="dockGapRange">间距</label><span id="dockGapValue">16px</span></div>
         <input id="dockGapRange" type="range" min="8" max="32" step="2" value="16" class="w-full accent-blue-500" aria-label="间距">
+        <div class="root-dock-settings-label">字体颜色</div>
+        <div id="dockFontColorSwatches" class="root-dock-font-swatches">
+          <button type="button" data-dock-font-color="default" class="dock-font-swatch">默认</button>
+          <button type="button" data-dock-font-color="white" class="dock-font-swatch">白色</button>
+          <button type="button" data-dock-font-color="gray" class="dock-font-swatch">深灰</button>
+          <button type="button" data-dock-font-color="blue" class="dock-font-swatch">蓝色</button>
+        </div>
       </div>
     </div>` : '';
 

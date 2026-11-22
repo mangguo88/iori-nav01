@@ -14,8 +14,11 @@
 .live-card-grid {
   display: grid;
   grid-template-columns: repeat(var(--preview-grid-cols, 4), minmax(0, 1fr));
-  gap: 0.8rem;
+  gap: var(--preview-card-gap, 0.8rem);
   padding: 0 1.35rem 1.35rem;
+  /* 卡片缩放：与首页 #sitesGrid 的 zoom 做法一致（80–120%） */
+  zoom: var(--preview-card-scale, 1);
+  width: calc(100% / var(--preview-card-scale, 1));
 }
 
 .live-preview-footer {
@@ -83,7 +86,7 @@
 }
 
 .live-card.frosted {
-  background: rgba(255, 255, 255, 0.56);
+  background: rgba(255, 255, 255, calc(0.56 * var(--card-bg-opacity, 1)));
   backdrop-filter: blur(var(--preview-frosted-blur, 15px));
   -webkit-backdrop-filter: blur(var(--preview-frosted-blur, 15px));
 }
@@ -405,9 +408,9 @@
   transform: translateY(-2px);
 }
 
-/* 开启毛玻璃：玻璃导航块 */
+/* 开启毛玻璃：玻璃导航块（底色受卡片背景透明度 --card-bg-opacity 控制） */
 .site-card.style-3.frosted-glass-effect {
-  background: rgba(255, 255, 255, 0.15) !important;
+  background: rgba(255, 255, 255, calc(0.15 * var(--card-bg-opacity, 1))) !important;
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
   color: rgba(255, 255, 255, 0.96);
@@ -416,19 +419,19 @@
 }
 
 .home-live-preview:not(.has-wallpaper) .site-card.style-3.frosted-glass-effect {
-  background: rgba(30, 41, 59, 0.88) !important;
+  background: rgba(30, 41, 59, calc(0.88 * var(--card-bg-opacity, 1))) !important;
   border-color: rgba(255, 255, 255, 0.12) !important;
 }
 
 .site-card.style-3.frosted-glass-effect:hover {
-  background: rgba(255, 255, 255, 0.3) !important;
+  background: rgba(255, 255, 255, calc(0.3 * var(--card-bg-opacity, 1))) !important;
   border: 1px solid rgba(255, 255, 255, 0.2) !important;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
   transform: translateY(-2px);
 }
 
 .home-live-preview:not(.has-wallpaper) .site-card.style-3.frosted-glass-effect:hover {
-  background: rgba(30, 41, 59, 0.96) !important;
+  background: rgba(30, 41, 59, calc(0.96 * var(--card-bg-opacity, 1))) !important;
 }
 
 .site-card.style-3 .site-card-content {
@@ -728,3 +731,54 @@
     display: none;
   }
 }
+
+/* ===== 预览里的条形卡片 / 主题 / 主色（与首页 body.strip-cards / body.theme-* 同一套表现，
+   只作用在 #homeLivePreview 里；文字色不用 !important，免得盖掉用户自定义的标题/描述颜色）===== */
+
+/* 条形卡片：网格改纵向一列通栏（首页 body.strip-cards 的做法） */
+.home-live-preview.preview-strip-cards .live-card-grid {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  max-width: 64rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+.home-live-preview.preview-strip-cards .live-card-grid .site-card { width: 100%; }
+
+/* 星空主题（深色）：标题白、描述浅灰、卡片深底（与首页 body.theme-meteor 一致） */
+.home-live-preview.preview-theme-meteor .home-live-preview-frame { color: #f3f4f6; }
+.home-live-preview.preview-theme-meteor .live-preview-sidebar {
+  background: rgba(17, 24, 39, 0.85);
+  border-right-color: rgba(255, 255, 255, 0.12);
+}
+.home-live-preview.preview-theme-meteor .site-card:not(.frosted-glass-effect) {
+  background-color: rgba(17, 24, 39, 0.85) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+.home-live-preview.preview-theme-meteor .site-card.style-3:not(.frosted-glass-effect) .site-title { color: #f3f4f6; }
+.home-live-preview.preview-theme-meteor .site-card-content h3 { color: #f3f4f6; }
+.home-live-preview.preview-theme-meteor .site-card-content p { color: #9ca3af; }
+.home-live-preview.preview-theme-meteor .preview-category { background: rgba(255, 255, 255, 0.1); color: #d1d5db; }
+.home-live-preview.preview-theme-meteor .live-preview-footer {
+  background: rgba(17, 24, 39, 0.85);
+  border-top-color: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.75);
+}
+
+/* 山水主题（浅色）：标题深、描述灰、卡片白底（与首页 body.theme-landscape 一致） */
+.home-live-preview.preview-theme-landscape .site-card:not(.frosted-glass-effect) {
+  background-color: rgba(255, 255, 255, 0.94) !important;
+}
+.home-live-preview.preview-theme-landscape .site-card.style-3:not(.frosted-glass-effect) .site-title { color: #111827; }
+.home-live-preview.preview-theme-landscape .site-card-content h3 { color: #111827; }
+.home-live-preview.preview-theme-landscape .site-card-content p { color: #4b5563; }
+
+/* 主色：预览里的强调色（复制按钮、复制成功提示）跟首页一样走 --main-* 变量，
+   变量由渲染时按当前主色写到预览根上；只作用在 #homeLivePreview 里，不动后台其它地方。 */
+#homeLivePreview .bg-accent-500 { background-color: var(--main-500) !important; }
+#homeLivePreview .bg-accent-100 { background-color: var(--main-100) !important; }
+#homeLivePreview .text-accent-700 { color: var(--main-700) !important; }
+#homeLivePreview .hover\:bg-accent-200:hover { background-color: var(--main-200) !important; }
+#homeLivePreview .hover\:bg-accent-600:hover { background-color: var(--main-600) !important; }

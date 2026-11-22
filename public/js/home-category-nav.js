@@ -474,6 +474,8 @@
     const DOCK_ALIGN_KEY = 'iori_dock_align_v1';
     const DOCK_SIZE_KEY = 'iori_dock_size_v1';
     const DOCK_GAP_KEY = 'iori_dock_gap_v1';
+    const DOCK_FONT_COLOR_KEY = 'iori_dock_font_color_v1';
+    const DOCK_FONT_COLOR_VALUES = ['default', 'white', 'gray', 'blue'];
     const DOCK_ALIGN_VALUES = ['left', 'center', 'right'];
     const DOCK_SIZE_DEFAULT = 64;
     const DOCK_SIZE_MIN = 48;
@@ -509,6 +511,20 @@
     function getDockGap() {
       try { return clampDockGap(localStorage.getItem(DOCK_GAP_KEY)); }
       catch (e) { return DOCK_GAP_DEFAULT; }
+    }
+
+    function getDockFontColor() {
+      try {
+        const v = localStorage.getItem(DOCK_FONT_COLOR_KEY);
+        return DOCK_FONT_COLOR_VALUES.indexOf(v) >= 0 ? v : 'default';
+      } catch (e) { return 'default'; }
+    }
+
+    function applyDockFontColor(color) {
+      if (color === 'default') document.documentElement.removeAttribute('data-dock-font-color');
+      else document.documentElement.setAttribute('data-dock-font-color', color);
+      const swatches = document.querySelectorAll('#dockFontColorSwatches .dock-font-swatch');
+      swatches.forEach((btn) => btn.classList.toggle('is-active', btn.getAttribute('data-dock-font-color') === color));
     }
 
     function applyDockAlign(align) {
@@ -576,10 +592,20 @@
           applyDockGap(px);
         });
       }
+      const fontSwatches = document.querySelectorAll('#dockFontColorSwatches .dock-font-swatch');
+      fontSwatches.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const color = btn.getAttribute('data-dock-font-color');
+          if (DOCK_FONT_COLOR_VALUES.indexOf(color) < 0) return;
+          try { localStorage.setItem(DOCK_FONT_COLOR_KEY, color); } catch (e) { /* 隐私模式等写不进时静默忽略 */ }
+          applyDockFontColor(color);
+        });
+      });
       // 与 <head> 里提前恢复的值同步一次控件状态
       applyDockAlign(getDockAlign());
       applyDockSize(getDockSize());
       applyDockGap(getDockGap());
+      applyDockFontColor(getDockFontColor());
     }
 
     // ---- 胶囊形子分类：站内切换分类时按 window.IORI_CAPSULES 重绘 ----
