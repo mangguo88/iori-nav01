@@ -17,12 +17,20 @@
   <meta name="twitter:description" content="{{SITE_DESCRIPTION}}">
   <meta name="twitter:image" content="{{OG_IMAGE_URL}}">
   <link rel="icon" href="/favicon.svg?v=148aafdf" type="image/svg+xml">
-  <link rel="stylesheet" href="/css/style.css?v=44bea88b">
+  <link rel="stylesheet" href="/css/style.css?v=40181c0d">
   <script>
     // Init Theme ASAP to prevent FOUC
     if (localStorage.getItem('theme') === 'dark') {
       document.documentElement.classList.add('dark');
     }
+    // 侧栏宽度 / 底色：页面绘制前先从 localStorage 恢复，避免闪烁
+    // （与 home-category-nav.js 里的侧栏设置同一组 key）
+    try {
+      var _sbw = parseInt(localStorage.getItem('iori_sidebar_width_v1') || '256', 10);
+      if (_sbw >= 200 && _sbw <= 320) document.documentElement.style.setProperty('--sidebar-w', _sbw + 'px');
+      var _sbbg = localStorage.getItem('iori_sidebar_bg_v1') || 'default';
+      if (['white', 'gray', 'dark'].indexOf(_sbbg) >= 0) document.documentElement.setAttribute('data-sidebar-bg', _sbbg);
+    } catch (e) { /* 隐私模式等读不到时静默忽略，用默认样式 */ }
   </script>
   <link rel="stylesheet" href="/css/tailwind.min.css?v=eb523845">
 </head>
@@ -62,7 +70,7 @@
   </div>
   
   <!-- 侧边栏 -->
-  <aside id="sidebar" class="sidebar sidebar-mode-botab fixed left-0 top-0 h-full w-64 bg-white dark:bg-gray-900 shadow-md border-r border-primary-100/60 dark:border-gray-800 z-50 overflow-y-auto mobile-sidebar lg:transform-none transition-all duration-300 {{SIDEBAR_CLASS}}">
+  <aside id="sidebar" class="sidebar sidebar-mode-botab fixed left-0 top-0 h-full bg-white dark:bg-gray-900 shadow-md border-r border-primary-100/60 dark:border-gray-800 z-50 overflow-y-auto mobile-sidebar lg:transform-none transition-all duration-300 {{SIDEBAR_CLASS}}">
     <div class="p-6">
       <div class="flex items-center justify-end mb-8">
         <button id="closeSidebar" class="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 lg:hidden">
@@ -124,6 +132,28 @@
         </div>
         
         
+        <button id="sidebarSettingsBtn" type="button" class="mt-2 flex w-full items-center px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-primary-500 dark:hover:text-primary-400 transition duration-300">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          侧栏设置
+        </button>
+        <div id="sidebarSettingsPanel" class="hidden mt-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-3 text-sm">
+          <div class="flex items-center justify-between mb-1">
+            <label for="sidebarWidthRange" class="text-gray-700 dark:text-gray-300">侧栏宽度</label>
+            <span id="sidebarWidthValue" class="text-xs text-gray-500 dark:text-gray-400">256px</span>
+          </div>
+          <input id="sidebarWidthRange" type="range" min="200" max="320" step="4" value="256" class="w-full accent-blue-500" aria-label="侧栏宽度">
+          <div class="mt-3 mb-1 text-gray-700 dark:text-gray-300">侧栏底色</div>
+          <div id="sidebarBgSwatches" class="flex items-center gap-2">
+            <button type="button" data-sidebar-bg="default" class="sidebar-bg-swatch flex-1 py-1 rounded-md border text-xs transition-colors" title="默认">默认</button>
+            <button type="button" data-sidebar-bg="white" class="sidebar-bg-swatch flex-1 py-1 rounded-md border text-xs transition-colors" title="白色">白色</button>
+            <button type="button" data-sidebar-bg="gray" class="sidebar-bg-swatch flex-1 py-1 rounded-md border text-xs transition-colors" title="浅灰">浅灰</button>
+            <button type="button" data-sidebar-bg="dark" class="sidebar-bg-swatch flex-1 py-1 rounded-md border text-xs transition-colors" title="深色">深色</button>
+          </div>
+        </div>
+
         <a href="/admin" target="_blank" class="mt-2 flex items-center px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-primary-500 dark:hover:text-primary-400 transition duration-300">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
@@ -249,7 +279,7 @@
   <script src="/js/home-cards.js?v=a8e67422"></script>
   <script src="/js/home-submit.js?v=5457a66d"></script>
   <script src="/js/home-search.js?v=5eadfb7e"></script>
-  <script src="/js/home-category-nav.js?v=a61f2a0f"></script>
+  <script src="/js/home-category-nav.js?v=6b7c25a2"></script>
   <script src="/js/main.js?v=193ce81f"></script>
 </body>
 </html>

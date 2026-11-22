@@ -1863,9 +1863,27 @@ body .search-engine-option.active {
 
 #sidebar-toggle { display: none; }
 @media (min-width: 1024px) {
-  #sidebar-toggle:checked ~ .sidebar { margin-left: -16rem; }
+  #sidebar-toggle:checked ~ .sidebar { margin-left: calc(-1 * var(--sidebar-w, 256px)); }
   #sidebar-toggle:checked ~ .main-content { margin-left: 0; }
 }
+
+/* ===== 侧栏宽度 / 底色（侧栏设置，存在 localStorage；JS 在 <head> 里先恢复）===== */
+/* 侧栏宽与内容区左边距用同一个变量联动，默认 256px；汉堡收起时上面那条规则归零。 */
+:root { --sidebar-w: 256px; }
+#sidebar { width: var(--sidebar-w, 256px); }
+@media (min-width: 1024px) {
+  .main-content { margin-left: var(--sidebar-w, 256px); }
+}
+/* 底色四档：默认（不写规则，走 aside 自身的 bg-white / dark:bg-gray-900）、
+   白色、浅灰、深色。html 上的属性选择器 + #sidebar 优先于 Tailwind 的 dark 变体。 */
+html[data-sidebar-bg="white"] #sidebar { background-color: #ffffff; }
+html[data-sidebar-bg="gray"] #sidebar { background-color: #f3f4f6; }
+html[data-sidebar-bg="dark"] #sidebar { background-color: #1f2937; border-color: #374151; }
+/* 底色小色板：每个按钮用自己的底色预览，当前选中的加蓝边 */
+.sidebar-bg-swatch { color: #374151; background-color: #ffffff; border-color: #d1d5db; }
+.sidebar-bg-swatch[data-sidebar-bg="gray"] { background-color: #f3f4f6; }
+.sidebar-bg-swatch[data-sidebar-bg="dark"] { background-color: #1f2937; border-color: #4b5563; color: #f3f4f6; }
+.sidebar-bg-swatch.is-active { border-color: #3b82f6; box-shadow: 0 0 0 1px #3b82f6; font-weight: 600; }
 
 /* 毛玻璃效果 - Light Mode */
 .frosted-glass-effect {
@@ -2408,10 +2426,10 @@ body.theme-landscape .site-card.style-3:not(.frosted-glass-effect) .site-title {
 }
 
 /* ===== 收藏夹栏根目录圆形图标栏（仿 BoTab 圆形图标栏，只学展示形式）===== */
-/* 背景框只包住内容（宽度随内容走、居中），不通栏；固定显示：主区往下滚时贴在
-   视口顶部（页面用整文档滚动，没有独立滚动容器、也没有冻结顶栏占位，故 top: 0）；
-   底色不透明，滚动内容从下面过不透出来。z-index 40 在卡片内容之上、
-   在侧栏（z-50）与弹窗（z-50）之下。 */
+/* 没有共享背景框：8 个图标各自是白色圆形、一排浮在页面背景上；固定显示：
+   主区往下滚时贴在视口顶部（页面用整文档滚动，没有独立滚动容器、也没有
+   冻结顶栏占位，故 top: 0）。z-index 40 在卡片内容之上、在侧栏（z-50）与
+   弹窗（z-50）之下。 */
 .root-dock {
   position: sticky;
   top: 0;
@@ -2419,47 +2437,12 @@ body.theme-landscape .site-card.style-3:not(.frosted-glass-effect) .site-title {
   width: max-content;
   max-width: calc(100% - 2rem);
   margin: 1rem auto 0;
-  padding: 0.625rem 0.875rem 0.75rem;
-  background-color: #ffffff;
-  border: 1px solid rgba(147, 197, 253, 0.35);
-  border-radius: 1rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-}
-.dark .root-dock {
-  background-color: #1f2937;
-  border-color: #374151;
+  padding: 0.25rem 0.5rem 0.5rem;
+  background: transparent;
+  border: 0;
 }
 .root-dock.hidden {
   display: none;
-}
-.root-dock-head {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
-}
-.root-dock-label {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: #374151;
-  white-space: nowrap;
-}
-.dark .root-dock-label {
-  color: #d1d5db;
-}
-.root-dock-count {
-  min-width: 1.25rem;
-  padding: 0 0.375rem;
-  text-align: center;
-  font-size: 0.6875rem;
-  line-height: 1.125rem;
-  color: #6b7280;
-  background-color: #f3f4f6;
-  border-radius: 9999px;
-}
-.dark .root-dock-count {
-  color: #9ca3af;
-  background-color: #374151;
 }
 .root-dock-items {
   display: flex;

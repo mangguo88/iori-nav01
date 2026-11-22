@@ -339,6 +339,77 @@
       if (treeBtn) treeBtn.addEventListener('click', () => save('tree'));
     }
 
+    // ---- 侧栏设置：宽度 + 底色（选择存 localStorage，树形/小舒两种模式都生效）----
+    // 宽度与内容区左边距共用 --sidebar-w 变量联动；<head> 里的内联脚本已在绘制前
+    // 恢复过一次，这里只同步控件状态并接管后续改动。
+    const SIDEBAR_WIDTH_KEY = 'iori_sidebar_width_v1';
+    const SIDEBAR_BG_KEY = 'iori_sidebar_bg_v1';
+    const SIDEBAR_WIDTH_DEFAULT = 256;
+    const SIDEBAR_WIDTH_MIN = 200;
+    const SIDEBAR_WIDTH_MAX = 320;
+    const SIDEBAR_BG_VALUES = ['default', 'white', 'gray', 'dark'];
+
+    function clampSidebarWidth(value) {
+      const n = parseInt(value, 10);
+      if (!Number.isFinite(n)) return SIDEBAR_WIDTH_DEFAULT;
+      return Math.min(SIDEBAR_WIDTH_MAX, Math.max(SIDEBAR_WIDTH_MIN, n));
+    }
+
+    function getSidebarWidth() {
+      try { return clampSidebarWidth(localStorage.getItem(SIDEBAR_WIDTH_KEY)); }
+      catch (e) { return SIDEBAR_WIDTH_DEFAULT; }
+    }
+
+    function getSidebarBg() {
+      try {
+        const v = localStorage.getItem(SIDEBAR_BG_KEY);
+        return SIDEBAR_BG_VALUES.indexOf(v) >= 0 ? v : 'default';
+      } catch (e) { return 'default'; }
+    }
+
+    function applySidebarWidth(px) {
+      document.documentElement.style.setProperty('--sidebar-w', px + 'px');
+      const range = document.getElementById('sidebarWidthRange');
+      if (range) range.value = String(px);
+      const valueEl = document.getElementById('sidebarWidthValue');
+      if (valueEl) valueEl.textContent = px + 'px';
+    }
+
+    function applySidebarBg(bg) {
+      if (bg === 'default') document.documentElement.removeAttribute('data-sidebar-bg');
+      else document.documentElement.setAttribute('data-sidebar-bg', bg);
+      const swatches = document.querySelectorAll('#sidebarBgSwatches .sidebar-bg-swatch');
+      swatches.forEach((btn) => btn.classList.toggle('is-active', btn.getAttribute('data-sidebar-bg') === bg));
+    }
+
+    function initSidebarSettings() {
+      const panel = document.getElementById('sidebarSettingsPanel');
+      const toggleBtn = document.getElementById('sidebarSettingsBtn');
+      if (toggleBtn && panel) {
+        toggleBtn.addEventListener('click', () => panel.classList.toggle('hidden'));
+      }
+      const range = document.getElementById('sidebarWidthRange');
+      if (range) {
+        range.addEventListener('input', () => {
+          const px = clampSidebarWidth(range.value);
+          try { localStorage.setItem(SIDEBAR_WIDTH_KEY, String(px)); } catch (e) { /* 隐私模式等写不进时静默忽略 */ }
+          applySidebarWidth(px);
+        });
+      }
+      const swatches = document.querySelectorAll('#sidebarBgSwatches .sidebar-bg-swatch');
+      swatches.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const bg = btn.getAttribute('data-sidebar-bg');
+          if (SIDEBAR_BG_VALUES.indexOf(bg) < 0) return;
+          try { localStorage.setItem(SIDEBAR_BG_KEY, bg); } catch (e) { /* 隐私模式等写不进时静默忽略 */ }
+          applySidebarBg(bg);
+        });
+      });
+      // 与 <head> 里提前恢复的值同步一次控件状态
+      applySidebarWidth(getSidebarWidth());
+      applySidebarBg(getSidebarBg());
+    }
+
     // ---- 胶囊形子分类：站内切换分类时按 window.IORI_CAPSULES 重绘 ----
     function escapeCapsuleHtml(text) {
       return String(text ?? '')
@@ -573,6 +644,7 @@
     Home.updateNavigationState = updateNavigationState;
     initSidebarTree();
     initSidebarMode();
+    initSidebarSettings();
     restoreLastCategory();
   };
 })();

@@ -307,7 +307,6 @@ export async function onRequest(context) {
   const showRootStrip = rootSites.length > 0 && (!catalogExists || requestedCatalogId === rootCategoryId);
   const rootStripHtml = showRootStrip ? `
     <div id="rootStrip" class="root-dock" data-root-catalog-id="${rootCategoryId}">
-      <div class="root-dock-head"><span class="root-dock-label">收藏夹栏根目录 · 未归类</span><span class="root-dock-count">${rootSites.length}</span></div>
       <div class="root-dock-items">${rootSites.map((site) => {
         const card = buildCardViewModel(site);
         const iconHtml = card.logoUrlHtml
@@ -469,7 +468,9 @@ export async function onRequest(context) {
   // 左侧栏在桌面端默认显示（横排/竖排菜单布局都一样），内容区让出左栏宽度；
   // 桌面端汉堡按钮（label for #sidebar-toggle）可把侧栏收起来，移动端仍是抽屉。
   let sidebarClass = '';
-  let mainClass = 'lg:ml-64';
+  // 内容区左边距不再写死 lg:ml-64，改由 style.css 里 --sidebar-w 变量联动侧栏宽度
+  // （侧栏设置可调宽度，默认 256px；桌面端汉堡收起时仍由 #sidebar-toggle 规则归零）。
+  let mainClass = '';
   let sidebarToggleClass = '';
   let mobileToggleVisibilityClass = 'lg:hidden';
   let adminIconHtml = '';
