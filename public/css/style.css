@@ -10,19 +10,6 @@
   display: none;
 }
 
-/* 标题区滚动自动收起：页面一滑动就平滑收起（约 250ms），滚回顶部恢复 */
-.home-title-block {
-  overflow: hidden;
-  max-height: 9rem;
-  transition: max-height 0.25s ease, opacity 0.25s ease, margin 0.25s ease;
-}
-.home-title-block.is-collapsed {
-  max-height: 0;
-  opacity: 0;
-  margin-top: 0 !important;
-  margin-bottom: 0 !important;
-}
-
 /* 粘性页脚：内容不足一屏时推到底部，内容较多时自然跟随文档流 */
 #app-scroll > .main-content {
   display: flex;
@@ -35,6 +22,20 @@
 #app-scroll > .main-content > section {
   width: 100%;
   flex-shrink: 0;
+}
+
+/* 顶栏永久固定：标题+副标题+搜索栏都在 header 里（手机版/桌面版两个版本
+   都在），header 钉住就一次性全固定、不滚走；下面内容（图标栏、卡片）向上滑
+   到它下面时被不透明实底挡住、自动隐藏。深色实底 #111827 与之前图标栏钉住
+   时的底色同色（用户是浅色模式+深色壁纸）；z-index 60 高于图标栏与卡片。
+   规则写在 style.css 里，盖掉模板 header 上的 bg-transparent 类。 */
+#app-scroll > .main-content > header {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  background-color: #111827;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
 }
 
 #app-scroll > .main-content > footer {
@@ -2457,17 +2458,10 @@ body.theme-landscape .site-card.style-3:not(.frosted-glass-effect) .site-title {
 }
 
 /* ===== 收藏夹栏根目录圆形图标栏（仿 BoTab 圆形图标栏，只学展示形式）===== */
-/* 没有共享背景框：8 个图标各自是白色圆形、一排浮在页面背景上；固定显示：
-   主区往下滚时贴在视口顶部（页面用整文档滚动，没有独立滚动容器、也没有
-   冻结顶栏占位，故 top: 0）。z-index 40 在卡片内容之上、在侧栏（z-50）与
-   弹窗（z-50）之下。 */
-/* 恢复 8730339 的样子（用户不喜欢 35f1855 的白色通栏）：透明底、无共享背景框，
-   8 个圆各自浮在壁纸上；栏宽 max-content、margin auto 居中；白条曾把用户设成
-   白色的圆下标签字盖住（白字落白条上看不见），透明底+深色壁纸下白字恢复可见。 */
+/* 没有共享背景框：8 个图标各自是白色圆形、一排浮在页面背景上；现在是普通文档流
+   里的元素，不再钉住——往下滚时跟着内容一起向上滑、从固定顶栏下面滑过被挡住。
+   栏宽 max-content、margin auto 居中。 */
 .root-dock {
-  position: sticky;
-  top: 0;
-  z-index: 40;
   display: flex;
   align-items: flex-start;
   width: max-content;
@@ -2476,15 +2470,6 @@ body.theme-landscape .site-card.style-3:not(.frosted-glass-effect) .site-title {
   padding: 0.25rem 0.5rem 0.5rem;
   background: transparent;
   border: 0;
-  transition: background-color 0.2s ease, box-shadow 0.2s ease;
-}
-/* 钉住时加深色实底：平时透明浮在壁纸上；滚到顶部钉住后卡片从栏下划过时被挡住，
-   不与圆下面的标签字重叠（标签字是白色，实底必须用深色）；滚回顶部恢复透明。
-   is-stuck 由 home-category-nav.js 监听 #app-scroll 滚动加/去。 */
-.root-dock.is-stuck {
-  background-color: #111827;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
 }
 /* 对齐方式（默认居中 = 上面那行 margin auto；居左/居右改 margin；记 localStorage） */
 html[data-dock-align="left"] .root-dock { margin-left: 0; margin-right: auto; }

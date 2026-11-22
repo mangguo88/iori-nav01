@@ -9,8 +9,6 @@
     const cardController = Home.cardController;
     let checkOverflow = () => { };
     let resetNav = () => { };
-    // 图标栏钉住状态刷新（initDockStuckState 里赋值；切分类显隐图标栏时也要调一次）
-    let updateDockStuckState = () => { };
 
     // moreWrapper 仅在设置「分类展示=单行」时由 SSR 输出；多行模式无此节点，不进入折叠逻辑
     if (navContainer && moreWrapper && moreBtn && dropdown) {
@@ -642,43 +640,6 @@
       applyDockFontColor(getDockFontColor());
     }
 
-    // ---- 图标栏钉住时加实底：平时透明浮在壁纸上；滚到顶部钉住后卡片从栏下
-    // 划过时被实底挡住，不与圆下面的标签字重叠；滚回顶部恢复透明。
-    // 用 getBoundingClientRect 判断：sticky 钉住时栏顶贴住滚动容器顶。
-    function initDockStuckState() {
-      const strip = document.getElementById('rootStrip');
-      const scroller = document.getElementById('app-scroll');
-      if (!strip || !scroller) return;
-      // 标题区滚动自动收起：页面一滑动（滚过约 10px）就收起标题块，只剩图标栏
-      // 钉在上面；滚回顶部恢复。5px 回差避免在阈值附近来回抖动。
-      // 注意首页有两个 .home-title-block（手机版在 min-[550px]:hidden 里藏着，
-      // 桌面版在 hidden min-[550px]:block 里）：必须两个都处理，querySelector
-      // 只取第一个会取到藏着的手机版，桌面版就永远收不起来。
-      const titleBlocks = document.querySelectorAll('.home-title-block');
-      const updateTitleCollapseState = () => {
-        if (titleBlocks.length === 0) return;
-        if (scroller.scrollTop > 10) titleBlocks.forEach((block) => block.classList.add('is-collapsed'));
-        else if (scroller.scrollTop < 5) titleBlocks.forEach((block) => block.classList.remove('is-collapsed'));
-      };
-      let ticking = false;
-      updateDockStuckState = () => {
-        ticking = false;
-        updateTitleCollapseState();
-        if (strip.classList.contains('hidden')) return;
-        const stuck = strip.getBoundingClientRect().top <= scroller.getBoundingClientRect().top + 1;
-        strip.classList.toggle('is-stuck', stuck);
-      };
-      const requestUpdate = () => {
-        if (!ticking) {
-          ticking = true;
-          requestAnimationFrame(updateDockStuckState);
-        }
-      };
-      scroller.addEventListener('scroll', requestUpdate, { passive: true });
-      window.addEventListener('resize', requestUpdate);
-      updateDockStuckState();
-    }
-
     // ---- 胶囊形子分类：站内切换分类时按 window.IORI_CAPSULES 重绘 ----
     function escapeCapsuleHtml(text) {
       return String(text ?? '')
@@ -715,7 +676,6 @@
       const rootId = strip.getAttribute('data-root-catalog-id');
       const show = !catalogId || String(catalogId) === String(rootId);
       strip.classList.toggle('hidden', !show);
-      if (show) updateDockStuckState();
     }
 
     document.addEventListener('click', async (e) => {
@@ -921,7 +881,6 @@
     initSidebarMode();
     initSidebarSettings();
     initDockSettings();
-    initDockStuckState();
     initSearchToggle();
     restoreLastCategory();
   };
