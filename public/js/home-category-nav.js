@@ -649,9 +649,18 @@
       const strip = document.getElementById('rootStrip');
       const scroller = document.getElementById('app-scroll');
       if (!strip || !scroller) return;
+      // 标题区滚动自动收起：页面一滑动（滚过约 10px）就收起标题块，只剩图标栏
+      // 钉在上面；滚回顶部恢复。5px 回差避免在阈值附近来回抖动。
+      const titleBlock = document.querySelector('.home-title-block');
+      const updateTitleCollapseState = () => {
+        if (!titleBlock) return;
+        if (scroller.scrollTop > 10) titleBlock.classList.add('is-collapsed');
+        else if (scroller.scrollTop < 5) titleBlock.classList.remove('is-collapsed');
+      };
       let ticking = false;
       updateDockStuckState = () => {
         ticking = false;
+        updateTitleCollapseState();
         if (strip.classList.contains('hidden')) return;
         const stuck = strip.getBoundingClientRect().top <= scroller.getBoundingClientRect().top + 1;
         strip.classList.toggle('is-stuck', stuck);

@@ -10,6 +10,19 @@
   display: none;
 }
 
+/* 标题区滚动自动收起：页面一滑动就平滑收起（约 250ms），滚回顶部恢复 */
+.home-title-block {
+  overflow: hidden;
+  max-height: 9rem;
+  transition: max-height 0.25s ease, opacity 0.25s ease, margin 0.25s ease;
+}
+.home-title-block.is-collapsed {
+  max-height: 0;
+  opacity: 0;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
 /* 粘性页脚：内容不足一屏时推到底部，内容较多时自然跟随文档流 */
 #app-scroll > .main-content {
   display: flex;
