@@ -236,11 +236,25 @@ export async function onRequest(context) {
 
   // === 6. 确定目标分类 ===
   const requestedCatalogValue = (url.searchParams.get('catalog') || '').trim();
+  const requestedPathValue = (url.searchParams.get('path') || '').trim();
   let requestedCatalogId = resolveCatalogId(requestedCatalogValue);
+
+  // 分组视图（?path=）：只在没有明确 ?catalog= 时生效，优先于“默认分类”设置。
+  // 路径须是某个分类完整路径的前缀（分组本身或其子文件夹）；同步不给中间文件夹
+  // 建分类，所以分组本身没有分类 id，只能按路径匹配它下面全部子分类。
+  let requestedGroupPath = null;
+  if (requestedCatalogId === null && requestedPathValue) {
+    const p = requestedPathValue;
+    const isGroupPath = categories.some((c) => {
+      const cl = String(c.catelog || '').trim();
+      return cl === p || cl.startsWith(p + ' / ');
+    });
+    if (isGroupPath) requestedGroupPath = p;
+  }
 
   // 共享首页缓存仅基于稳定的默认分类渲染，避免用户的 iori_last_category
   // 影响公共 KV HTML。记住上次分类的恢复逻辑仅在前端执行。
-  if (!requestedCatalogValue) {
+  if (!requestedCatalogValue && !requestedGroupPath) {
     const defaultCat = (S.home_default_category || '').trim();
     requestedCatalogId = resolveCatalogId(defaultCat, { allowName: true });
   }
@@ -248,11 +262,19 @@ export async function onRequest(context) {
   let targetCategoryIds = [];
   let currentCatalogName = '';
   const catalogExists = requestedCatalogId !== null;
+  const groupPathExists = requestedGroupPath !== null;
 
   if (catalogExists) {
     const requestedCategory = categoryMap.get(requestedCatalogId);
     currentCatalogName = requestedCategory.catelog;
     targetCategoryIds.push(requestedCatalogId);
+  } else if (groupPathExists) {
+    currentCatalogName = requestedGroupPath;
+    // 分组下全部子分类的 id（含分组本身若它恰好也是一个真实分类）
+    for (const c of categories) {
+      const cl = String(c.catelog || '').trim();
+      if (cl === requestedGroupPath || cl.startsWith(requestedGroupPath + ' / ')) targetCategoryIds.push(c.id);
+    }
   }
 
   const sites = targetCategoryIds.length > 0
@@ -285,14 +307,14 @@ export async function onRequest(context) {
   const sidebarCategoryTree = buildCategoryPathTree(categories, directSiteCounts);
 
   // === 9. 生成菜单 HTML ===
-  const allLinkActive = !catalogExists;
+  const allLinkActive = !catalogExists && !groupPathExists;
   const allLinkSidebarClass = allLinkActive
     ? 'bg-secondary-100 text-primary-700 dark:bg-gray-800 dark:text-primary-400'
     : 'hover:bg-gray-100 text-gray-700 dark:text-gray-300 dark:hover:bg-gray-800';
   const allLinkSidebarIconClass = allLinkActive ? 'text-primary-600 dark:text-primary-400' : 'text-gray-400 dark:text-gray-500';
   // 顶部横向标签栏已取消显示（2026-11-22 用户要求）：不再渲染横向分类导航，
   // 分类导航只走左侧栏（桌面）与抽屉（手机）。
-  const catalogLinkMarkup = renderSidebarTree(sidebarCategoryTree, catalogExists ? requestedCatalogId : null);
+  const catalogLinkMarkup = renderSidebarTree(sidebarCategoryTree, catalogExists ? requestedCatalogId : null, currentCatalogName);
   const catalogBotabMarkup = renderSidebarBotab(sidebarCategoryTree, currentCatalogName);
 
   // === 9b. 收藏夹栏根目录书签圆形图标栏（仿 BoTab 圆形图标栏，只学展示形式）===
@@ -304,7 +326,7 @@ export async function onRequest(context) {
   const rootSites = rootCategoryId !== null
     ? allSites.filter((site) => site.catelog_id === rootCategoryId)
     : [];
-  const showRootStrip = rootSites.length > 0 && (!catalogExists || requestedCatalogId === rootCategoryId);
+  const showRootStrip = rootSites.length > 0 && !groupPathExists && (!catalogExists || requestedCatalogId === rootCategoryId);
   const rootStripHtml = showRootStrip ? `
     <div id="rootStrip" class="root-dock" data-root-catalog-id="${rootCategoryId}">
       <div class="root-dock-items">${rootSites.map((site) => {
@@ -352,9 +374,25 @@ export async function onRequest(context) {
     }
     return null;
   }
+  // 按完整路径找树节点（分组没有 id，只能按路径找）
+  function findTreeNodeByPath(root, fullPath) {
+    const stack = [root];
+    while (stack.length > 0) {
+      const node = stack.pop();
+      if (node.fullPath === fullPath) return node;
+      for (const child of node.children || []) stack.push(child);
+    }
+    return null;
+  }
+  // 直接子文件夹：真实分类带 id、子分组带 path，胶囊里都能点
   const childCapsuleItems = (node) => (node.children || [])
-    .filter((c) => c.id !== null && c.id !== undefined)
-    .map((c) => ({ id: c.id, name: shortCategoryName(c.fullPath), fullPath: c.fullPath }));
+    .map((c) => ({
+      id: (c.id !== null && c.id !== undefined) ? c.id : null,
+      path: (c.id !== null && c.id !== undefined) ? null : c.fullPath,
+      name: shortCategoryName(c.fullPath),
+      fullPath: c.fullPath,
+    }))
+    .filter((c) => c.id !== null || c.path !== null);
   // 每个分类的胶囊表（供前端站内切换分类时重绘胶囊行；与 SSR 同一套规则）
   const capsuleMap = {};
   const buildCapsuleEntry = (node, parent) => {
@@ -370,6 +408,10 @@ export async function onRequest(context) {
     if (node.id !== null && node.id !== undefined) {
       const entry = buildCapsuleEntry(node, parent);
       if (entry) capsuleMap[String(node.id)] = entry;
+    } else if (node.fullPath) {
+      // 没有 id 的分组节点：胶囊是它的直接子文件夹，供 ?path= 分组视图用
+      const items = childCapsuleItems(node);
+      if (items.length > 0) capsuleMap['path:' + node.fullPath] = { items, activeId: null };
     }
     for (const child of node.children || []) collectCapsuleEntries(child, node);
   };
@@ -378,12 +420,25 @@ export async function onRequest(context) {
   if (catalogExists) {
     const found = findTreeNodeWithParent(sidebarCategoryTree, requestedCatalogId);
     if (found) subCapsuleEntry = buildCapsuleEntry(found.node, found.parent);
+  } else if (groupPathExists) {
+    const groupNode = findTreeNodeByPath(sidebarCategoryTree, requestedGroupPath);
+    if (groupNode) {
+      const items = childCapsuleItems(groupNode);
+      if (items.length > 0) subCapsuleEntry = { items, activeId: null };
+    }
   }
   const renderCapsules = (entry) => {
     if (!entry || !entry.items || entry.items.length === 0) return '';
     return entry.items.map((item) => {
-      const isActive = entry.activeId !== null && entry.activeId !== undefined && String(item.id) === String(entry.activeId);
-      return `<a href="?catalog=${encodeURIComponent(String(item.id))}" data-id="${item.id}" data-full-name="${escapeHTML(item.fullPath)}" title="${escapeHTML(item.fullPath)}" class="sub-capsule${isActive ? ' is-active' : ''}">${escapeHTML(item.name)}</a>`;
+      const isActive = entry.activeId !== null && entry.activeId !== undefined && item.id !== null && item.id !== undefined && String(item.id) === String(entry.activeId);
+      const isGroup = item.id === null || item.id === undefined;
+      const href = isGroup
+        ? `?path=${encodeURIComponent(item.path)}`
+        : `?catalog=${encodeURIComponent(String(item.id))}`;
+      const dataAttr = isGroup
+        ? `data-path="${escapeHTML(item.path)}"`
+        : `data-id="${item.id}"`;
+      return `<a href="${href}" ${dataAttr} data-full-name="${escapeHTML(item.fullPath)}" title="${escapeHTML(item.fullPath)}" class="sub-capsule${isActive ? ' is-active' : ''}">${escapeHTML(item.name)}</a>`;
     }).join('');
   };
   const subCapsulesHtml = `<div id="subCapsules" class="sub-capsules${subCapsuleEntry ? '' : ' hidden'}">${renderCapsules(subCapsuleEntry)}</div>`;
@@ -665,6 +720,8 @@ export async function onRequest(context) {
     rememberLastCategory: S.home_remember_last_category,
     // 当前 SSR 已渲染的分类（用于前端 Auto-restore 判断是否可跳过重绘）
     ssrCatalogId: catalogExists ? requestedCatalogId : 'all',
+    // 当前 SSR 已渲染的分组完整路径（?path= 分组视图；没有时为 null）
+    ssrPath: groupPathExists ? requestedGroupPath : null,
   }).replace(/</g, '\\u003c');
 
   // --- 一次性替换 </head> ---

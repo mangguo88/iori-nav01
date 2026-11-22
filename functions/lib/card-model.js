@@ -114,6 +114,9 @@ export function buildCardViewModel(site) {
   return {
     id: site?.id,
     catelog_id: site?.catelog_id,
+    // 分组视图（?path=）按分类完整路径筛选：保留未转义的原始路径，
+    // 前端直接按“等于该路径，或以‘路径 / ’开头”匹配，不用再反转义
+    catelog_name: rawCatalog,
     nameHtml: escapeHTML(rawName),
     catalogHtml: escapeHTML(shortCategoryName(rawCatalog)),
     catalogFullHtml: escapeHTML(rawCatalog),

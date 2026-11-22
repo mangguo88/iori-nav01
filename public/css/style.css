@@ -2004,8 +2004,8 @@ html[data-sidebar-font-color="white"] #sidebar { --sidebar-fg: #ffffff; }
 html:is([data-sidebar-bg="white"], [data-sidebar-bg="gray"], [data-sidebar-bg="dark"], [data-sidebar-font-color]) #sidebar :is(
   .sidebar-tree-link:not(.bg-secondary-100),
   .sidebar-botab-link:not(.bg-secondary-100),
-  .sidebar-tree-group,
-  .sidebar-botab-group,
+  .sidebar-tree-group:not(.bg-secondary-100),
+  .sidebar-botab-group:not(.bg-secondary-100),
   .sidebar-top-row button,
   .sidebar-top-row a:not(.bg-secondary-100),
   h3,
@@ -2720,7 +2720,7 @@ html[data-dock-font-color="blue"] .root-dock-name { color: #2563eb; }
   font-size: var(--sidebar-font-size, 0.875rem);
 }
 .sidebar-botab-group {
-  cursor: default;
+  cursor: pointer;
 }
 #sidebar.sidebar-mode-botab #sidebarTreeWrap {
   display: none;

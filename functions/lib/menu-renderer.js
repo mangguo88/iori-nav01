@@ -121,14 +121,16 @@ export function buildCategoryPathTree(cats, directSiteCounts) {
 /**
  * 渲染左侧栏文件夹树（按全路径分段嵌套，如 "收藏夹栏 / VPS类 / vps服务器"
  * 拼成 收藏夹栏 -> VPS类 -> vps服务器 三层；中间节点不一定对应真实分类，
- * 没有 id 的节点只做分组头，点名称只折叠/展开，不跳转）。
+ * 没有 id 的节点是分组头：点名称进分组视图（?path= 完整路径，看下面全部书签），
+ * 点名称前面的小箭头才折叠/展开。
  * @param {object} root - 路径树根节点 { name, fullPath, id, count, children: [] }
  * @param {number|null} currentCatalogId - 当前选中的分类 id
+ * @param {string} [currentPath] - 当前视图的完整路径（分类或分组；为空表示“全部”）
  * @returns {string} HTML 字符串
  */
-export function renderSidebarTree(root, currentCatalogId) {
+export function renderSidebarTree(root, currentCatalogId, currentPath) {
   if (!root || !root.children || root.children.length === 0) return '';
-  return root.children.map((node) => _renderSidebarNode(node, currentCatalogId)).join('');
+  return root.children.map((node) => _renderSidebarNode(node, currentCatalogId, currentPath)).join('');
 }
 
 /**
@@ -136,6 +138,8 @@ export function renderSidebarTree(root, currentCatalogId) {
  * 纯文字竖排，只列顶级文件夹——每个一级节点一行，紧接着列出它的一级子文件夹
  * （如 收藏夹栏、VPS类、账号类、工具类……）；没有折叠、没有文件夹图标、
  * 没有数量、不截断名字。当前分类或其祖先分类那一行变蓝。
+ * 没有 id 的分组节点（如 VPS类）也渲染成可点链接（?path= 完整路径），
+ * 点一下进分组视图，看它下面全部子文件夹的书签。
  * @param {object} root - buildCategoryPathTree 返回的路径树根节点
  * @param {string} currentCatalogFullPath - 当前选中的分类完整路径（为空表示“全部”）
  * @returns {string} HTML 字符串
@@ -155,7 +159,8 @@ export function renderSidebarBotab(root, currentCatalogFullPath) {
     if (node.id !== null && node.id !== undefined) {
       rows.push(`<div class="sidebar-botab-row"><a href="?catalog=${encodeURIComponent(String(node.id))}" data-id="${node.id}" data-full-name="${safeFull}" title="${safeFull}" class="sidebar-botab-link flex items-center px-3 py-2 rounded-lg flex-1 min-w-0 transition-colors duration-200 ${activeClass}"><span class="sidebar-botab-name">${shortName}</span></a></div>`);
     } else {
-      rows.push(`<div class="sidebar-botab-row"><span class="sidebar-botab-link sidebar-botab-group flex items-center px-3 py-2 rounded-lg flex-1 min-w-0 text-gray-500 dark:text-gray-400" title="${safeFull}"><span class="sidebar-botab-name">${shortName}</span></span></div>`);
+      // 没有 id 的分组节点：也渲染成可点链接（?path= 完整路径），进分组视图
+      rows.push(`<div class="sidebar-botab-row"><a href="?path=${encodeURIComponent(node.fullPath)}" data-path="${safeFull}" data-full-name="${safeFull}" title="${safeFull}" class="sidebar-botab-link sidebar-botab-group flex items-center px-3 py-2 rounded-lg flex-1 min-w-0 transition-colors duration-200 ${activeClass}"><span class="sidebar-botab-name">${shortName}</span></a></div>`);
     }
   };
   for (const node of root.children) {
@@ -167,11 +172,13 @@ export function renderSidebarBotab(root, currentCatalogFullPath) {
   return rows.join('');
 }
 
-function _renderSidebarNode(node, currentCatalogId) {
+function _renderSidebarNode(node, currentCatalogId, currentPath) {
   const safeFull = escapeHTML(node.fullPath);
   const shortName = escapeHTML(node.name);
   const hasChildren = node.children && node.children.length > 0;
-  const isActive = node.id !== null && node.id !== undefined && String(node.id) === String(currentCatalogId);
+  // 当前项：真实分类按 id 匹配；分组按完整路径精确匹配（分组没有 id）
+  const isActive = (node.id !== null && node.id !== undefined && String(node.id) === String(currentCatalogId))
+    || (currentPath !== null && currentPath !== undefined && String(currentPath) !== '' && node.fullPath === String(currentPath));
   const activeClass = isActive
     ? 'bg-secondary-100 text-primary-700 dark:bg-gray-800 dark:text-primary-400'
     : 'hover:bg-gray-100 text-gray-700 dark:text-gray-300 dark:hover:bg-gray-800';
@@ -182,19 +189,20 @@ function _renderSidebarNode(node, currentCatalogId) {
     ? `<button type="button" class="sidebar-tree-toggle" data-toggle-path="${safeFull}" aria-expanded="true" title="折叠/展开"><svg class="h-3.5 w-3.5"><use href="#icon-chevron-down"/></svg></button>`
     : '<span class="sidebar-tree-toggle-spacer"></span>';
 
-  // 真实分类：可点链接；虚拟分组头：只显示名字，点名称折叠/展开（JS 绑 .sidebar-tree-group）
+  // 真实分类：可点链接；虚拟分组头：也可点链接（?path= 完整路径），点名称进分组视图
+  // 看下面全部书签；折叠/展开只走名字前面的小箭头按钮 .sidebar-tree-toggle
   const linkHtml = node.id !== null && node.id !== undefined
     ? `<a href="?catalog=${encodeURIComponent(String(node.id))}" data-id="${node.id}" data-full-name="${safeFull}" title="${safeFull}" class="sidebar-tree-link flex items-center px-3 py-2 rounded-lg flex-1 min-w-0 transition-colors duration-200 ${activeClass}">
         <svg class="h-5 w-5 mr-2 flex-shrink-0 ${iconClass}"><use href="#icon-folder"/></svg>
         <span class="sidebar-tree-name truncate">${shortName}</span>
       </a>`
-    : `<span class="sidebar-tree-link sidebar-tree-group flex items-center px-3 py-2 rounded-lg flex-1 min-w-0 text-gray-700 dark:text-gray-300 cursor-pointer" title="${safeFull}">
+    : `<a href="?path=${encodeURIComponent(node.fullPath)}" data-path="${safeFull}" data-full-name="${safeFull}" title="${safeFull}" class="sidebar-tree-link sidebar-tree-group flex items-center px-3 py-2 rounded-lg flex-1 min-w-0 transition-colors duration-200 ${activeClass}">
         <svg class="h-5 w-5 mr-2 flex-shrink-0 ${iconClass}"><use href="#icon-folder"/></svg>
         <span class="sidebar-tree-name truncate">${shortName}</span>
-      </span>`;
+      </a>`;
 
   const childrenHtml = hasChildren
-    ? `<div class="sidebar-tree-children">${node.children.map((c) => _renderSidebarNode(c, currentCatalogId)).join('')}</div>`
+    ? `<div class="sidebar-tree-children">${node.children.map((c) => _renderSidebarNode(c, currentCatalogId, currentPath)).join('')}</div>`
     : '';
 
   return `<div class="sidebar-tree-node" data-tree-path="${safeFull}">

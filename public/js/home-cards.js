@@ -43,6 +43,10 @@
     let activeRenderedCatalogId = window.IORI_LAYOUT_CONFIG?.ssrCatalogId && window.IORI_LAYOUT_CONFIG.ssrCatalogId !== 'all'
       ? String(window.IORI_LAYOUT_CONFIG.ssrCatalogId)
       : null;
+    // 分组视图（?path=）下当前渲染的分组完整路径；与分类 id 二选一
+    let activeRenderedPath = window.IORI_LAYOUT_CONFIG?.ssrPath
+      ? String(window.IORI_LAYOUT_CONFIG.ssrPath)
+      : null;
 
     function getCardDevice() {
       if (desktopPointerQuery?.matches) return 'desktop';
@@ -59,6 +63,29 @@
       const allSites = window.IORI_SITES || [];
       if (!catalogId) return allSites;
       return allSites.filter(site => String(site.catelog_id) === String(catalogId));
+    }
+
+    // 分组视图：取该完整路径下全部书签（含直接书签与各级子文件夹的书签）。
+    // 书签按分类完整路径匹配（等于该路径，或以“路径 / ”开头）。
+    function getSitesForPath(path) {
+      const allSites = window.IORI_SITES || [];
+      const prefix = String(path || '').trim();
+      if (!prefix) return allSites;
+      const sep = prefix + ' / ';
+      return allSites.filter(site => {
+        const name = site.catelog_name || '';
+        if (name) return name === prefix || name.startsWith(sep);
+        // 旧缓存的 IORI_SITES 没有 catelog_name 时，用已有的转义后完整路径比对
+        const esc = site.catalogFullHtml || '';
+        const escPrefix = escapeHtml(prefix);
+        return esc === escPrefix || esc.startsWith(escPrefix + ' / ');
+      });
+    }
+
+    // 当前视图应渲染的书签：分组视图按路径，分类视图按 id，全部视图返回全部
+    function getActiveRenderedSites() {
+      if (activeRenderedPath) return getSitesForPath(activeRenderedPath);
+      return getSitesForCatalog(activeRenderedCatalogId);
     }
 
     // ---- CSRF token（所有写操作用）----
@@ -126,7 +153,7 @@
       activeCardDevice = device;
       cardConfig = nextConfig;
       applyCardGridColumns();
-      renderSites(getSitesForCatalog(activeRenderedCatalogId));
+      renderSites(getActiveRenderedSites());
       Home.reapplyLocalSearchFilter?.();
     }
 
@@ -967,10 +994,14 @@
         }
         site.catelog_id = targetId;
         const target = moveSiteCategories.find((c) => c.id === targetId);
-        if (target) { site.catalogHtml = escapeHtml(shortCategoryName(target.name)); site.catalogFullHtml = escapeHtml(target.name); }
-        // 当前在看某一分类、书签被移走了：卡片直接消失；否则原地改分组角标
+        if (target) { site.catalogHtml = escapeHtml(shortCategoryName(target.name)); site.catalogFullHtml = escapeHtml(target.name); site.catelog_name = target.name; }
+        // 当前在看某一分类/分组、书签被移走了：卡片直接消失；否则原地改分组角标
         const card = sitesGrid && sitesGrid.querySelector('.site-card[data-id="' + site.id + '"]');
-        if (activeRenderedCatalogId && String(targetId) !== String(activeRenderedCatalogId)) {
+        const targetPath = target ? String(target.name || '') : '';
+        const movedOutOfView = activeRenderedCatalogId
+          ? String(targetId) !== String(activeRenderedCatalogId)
+          : (activeRenderedPath ? !(targetPath === activeRenderedPath || targetPath.startsWith(activeRenderedPath + ' / ')) : false);
+        if (movedOutOfView) {
           if (card) card.remove();
           if (sitesGrid && !sitesGrid.querySelector('.site-card')) {
             sitesGrid.innerHTML = '<div class="col-span-full text-center text-gray-500 py-10">本分类下暂无书签</div>';
@@ -1050,7 +1081,7 @@
         const data = await res.json().catch(() => null);
         if (!res.ok) {
           window.alert('保存排序失败：' + ((data && data.message) || ('HTTP ' + res.status)));
-          renderSites(getSitesForCatalog(activeRenderedCatalogId));
+          renderSites(getActiveRenderedSites());
           return;
         }
         // 同步回内存模型，下次渲染保持新顺序
@@ -1067,7 +1098,7 @@
           window.alert('保存排序失败：' + (e.message || String(e)));
         }
         // 保存失败就按服务端顺序重渲染，拖动不生效
-        renderSites(getSitesForCatalog(activeRenderedCatalogId));
+        renderSites(getActiveRenderedSites());
       }
     }
 
@@ -1193,8 +1224,14 @@
       init,
       renderSites,
       getSitesForCatalog,
+      getSitesForPath,
+      setActivePath(path) {
+        activeRenderedPath = path ? String(path) : null;
+        activeRenderedCatalogId = null;
+      },
       setActiveCatalogId(catalogId) {
         activeRenderedCatalogId = catalogId ? String(catalogId) : null;
+        activeRenderedPath = null;
       },
     };
   };

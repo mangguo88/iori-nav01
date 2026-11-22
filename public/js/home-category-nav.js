@@ -236,6 +236,27 @@
       if (changed) saveSidebarCollapsedPaths(collapsed);
     }
 
+    // 分组视图：把该分组节点本身与祖先节点展开，保证高亮项可见
+    function expandSidebarAncestorsByPath(path) {
+      const sidebar = document.getElementById('sidebar');
+      if (!sidebar || !path) return;
+      const nodes = Array.from(sidebar.querySelectorAll('.sidebar-tree-node[data-tree-path]'));
+      const target = nodes.find((n) => n.getAttribute('data-tree-path') === path);
+      if (!target) return;
+      const collapsed = getSidebarCollapsedPaths();
+      let changed = false;
+      let node = target;
+      while (node) {
+        if (node.classList.contains('is-collapsed')) {
+          setSidebarNodeCollapsed(node, false);
+          collapsed.delete(node.getAttribute('data-tree-path'));
+          changed = true;
+        }
+        node = node.parentElement.closest('.sidebar-tree-node');
+      }
+      if (changed) saveSidebarCollapsedPaths(collapsed);
+    }
+
     function initSidebarTree() {
       const sidebar = document.getElementById('sidebar');
       if (!sidebar) return;
@@ -245,7 +266,7 @@
       // 当前选中分类的祖先节点强制展开（即使之前收起过），保证高亮可见；
       // 只改 DOM，不改存着的折叠记录
       const activePaths = new Set();
-      const activeLink = sidebar.querySelector('.sidebar-tree-node a[data-id].bg-secondary-100');
+      const activeLink = sidebar.querySelector('.sidebar-tree-node a.bg-secondary-100');
       if (activeLink) {
         let node = activeLink.closest('.sidebar-tree-node');
         while (node) {
@@ -276,12 +297,8 @@
           if (node) toggleNode(node);
           return;
         }
-        // 虚拟分组头（没有真实分类）：点名称只折叠/展开，不跳转
-        const group = e.target.closest('.sidebar-tree-group');
-        if (group) {
-          const node = group.closest('.sidebar-tree-node');
-          if (node) toggleNode(node);
-        }
+        // 分组名现在是可点链接（进分组视图看下面全部书签），点名称不再折叠；
+        // 折叠/展开只走名字前面的小箭头按钮（上面 .sidebar-tree-toggle 那支）。
       });
 
       const expandAllBtn = document.getElementById('sidebarExpandAllBtn');
@@ -663,14 +680,15 @@
         .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
 
-    function updateCapsules(catalogId) {
+    // currentPath 为分组完整路径时，胶囊取该分组的直接子文件夹（?path= 表里按 'path:' + 路径存）
+    function updateCapsules(catalogId, currentPath) {
       const wrap = document.getElementById('subCapsules');
       if (!wrap) return;
       // 统计标题行已去掉，外层 .home-stats-row 现在只包胶囊：站内切分类时外层也要跟着显隐，
       // 否则从无胶囊的分类切到有胶囊的分类时，胶囊会被藏在 hidden 的外层里看不见。
       const row = wrap.closest('.home-stats-row');
       const map = window.IORI_CAPSULES || {};
-      const entry = (!catalogId ? null : map[String(catalogId)]) || null;
+      const entry = (currentPath ? map['path:' + currentPath] : (!catalogId ? null : map[String(catalogId)])) || null;
       if (!entry || !entry.items || entry.items.length === 0) {
         wrap.classList.add('hidden');
         wrap.innerHTML = '';
@@ -678,32 +696,84 @@
         return;
       }
       wrap.innerHTML = entry.items.map((item) => {
-        const isActive = entry.activeId !== null && entry.activeId !== undefined && String(item.id) === String(entry.activeId);
-        return `<a href="?catalog=${encodeURIComponent(String(item.id))}" data-id="${item.id}" data-full-name="${escapeCapsuleHtml(item.fullPath || item.name)}" title="${escapeCapsuleHtml(item.fullPath || item.name)}" class="sub-capsule${isActive ? ' is-active' : ''}">${escapeCapsuleHtml(item.name)}</a>`;
+        const isActive = entry.activeId !== null && entry.activeId !== undefined && item.id !== null && item.id !== undefined && String(item.id) === String(entry.activeId);
+        const isGroup = item.id === null || item.id === undefined;
+        const href = isGroup ? `?path=${encodeURIComponent(item.path)}` : `?catalog=${encodeURIComponent(String(item.id))}`;
+        const dataAttr = isGroup ? `data-path="${escapeCapsuleHtml(item.path)}"` : `data-id="${item.id}"`;
+        return `<a href="${href}" ${dataAttr} data-full-name="${escapeCapsuleHtml(item.fullPath || item.name)}" title="${escapeCapsuleHtml(item.fullPath || item.name)}" class="sub-capsule${isActive ? ' is-active' : ''}">${escapeCapsuleHtml(item.name)}</a>`;
       }).join('');
       wrap.classList.remove('hidden');
       if (row) row.classList.remove('hidden');
     }
 
     // ---- 根目录书签横条：只在“全部”和“收藏夹栏”视图下显示 ----
-    function updateRootStripVisibility(catalogId) {
+    // 分组视图（?path=）按非“全部/收藏夹栏”视图处理，藏起
+    function updateRootStripVisibility(catalogId, currentPath) {
       const strip = document.getElementById('rootStrip');
       if (!strip) return;
       const rootId = strip.getAttribute('data-root-catalog-id');
-      const show = !catalogId || String(catalogId) === String(rootId);
+      const show = (!catalogId && !currentPath) || String(catalogId) === String(rootId);
       strip.classList.toggle('hidden', !show);
     }
 
+    // ---- 站内切换：分类 (?catalog=) 与分组 (?path=) ----
+    // 按侧栏链接找短名与完整路径（直接比属性值，不拼选择器，避免路径里的特殊字符）
+    function findSidebarLinkByPath(path) {
+      const sidebar = document.getElementById('sidebar');
+      if (!sidebar || !path) return null;
+      const links = sidebar.querySelectorAll('a[data-path]');
+      for (const link of links) {
+        if (link.getAttribute('data-path') === path) return link;
+      }
+      return null;
+    }
+
+    function findSidebarLinkById(catalogId) {
+      const sidebar = document.getElementById('sidebar');
+      if (!sidebar || catalogId === null || catalogId === undefined) return null;
+      return sidebar.querySelector(`a[data-id="${catalogId}"]`);
+    }
+
+    function shortNameFromPath(path) {
+      const parts = String(path || '').split('/').map((s) => s.trim()).filter(Boolean);
+      return parts.length ? parts[parts.length - 1] : String(path || '').trim();
+    }
+
+    // 站内切到某一分类：筛卡片、改标题、同步侧栏/胶囊/横条状态。IORI_SITES 或
+    // cardController 缺失时返回 false，调用方整页跳转到 href 走服务端渲染。
+    function applyCatalogView(catalogId, catalogName, catalogFullPath) {
+      const sitesGrid = document.getElementById('sitesGrid');
+      if (!sitesGrid || !window.IORI_SITES || !cardController) return false;
+      const filteredSites = cardController.getSitesForCatalog(catalogId);
+      cardController.setActiveCatalogId(catalogId);
+      cardController.renderSites(filteredSites);
+      Home.updateHeading?.(null, catalogId ? catalogName : null, filteredSites.length);
+      updateNavigationState(catalogId, catalogFullPath || '');
+      return true;
+    }
+
+    // 站内切到某一分组：筛出该路径下全部书签（含各级子文件夹），其余与分类视图一致
+    function applyGroupView(groupPath, groupName) {
+      const sitesGrid = document.getElementById('sitesGrid');
+      if (!sitesGrid || !window.IORI_SITES || !cardController) return false;
+      const filteredSites = cardController.getSitesForPath(groupPath);
+      cardController.setActivePath(groupPath);
+      cardController.renderSites(filteredSites);
+      Home.updateHeading?.(null, groupName || null, filteredSites.length);
+      updateNavigationState(null, groupPath);
+      return true;
+    }
+
     document.addEventListener('click', async (e) => {
-      const link = e.target.closest('a[href^="?catalog="]');
+      const catalogLink = e.target.closest('a[href^="?catalog="]');
+      const pathLink = !catalogLink && e.target.closest('a[href^="?path="]');
+      const link = catalogLink || pathLink;
       if (!link) return;
 
       if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
 
       e.preventDefault();
       const href = link.getAttribute('href');
-      const catalogId = link.getAttribute('data-id');
-      const catalogName = link.textContent.trim();
 
       Home.closeSidebarMenu?.();
 
@@ -724,25 +794,67 @@
         sitesGrid.style.transition = 'none';
         sitesGrid.style.opacity = '1';
 
-        const filteredSites = cardController.getSitesForCatalog(catalogId);
-        cardController.setActiveCatalogId(catalogId);
-        cardController.renderSites(filteredSites);
-        Home.updateHeading?.(null, catalogId ? catalogName : null, filteredSites.length);
-        updateNavigationState(catalogId);
+        if (pathLink) {
+          const groupPath = link.getAttribute('data-path') || '';
+          const groupName = link.textContent.trim();
+          if (!groupPath) {
+            window.location.href = href;
+            return;
+          }
+          if (!applyGroupView(groupPath, groupName)) {
+            window.location.href = href;
+            return;
+          }
+          // 分组视图不记 iori_last_category（那是分类 id），下次无参数打开时仍按上次分类恢复
+        } else {
+          const catalogId = link.getAttribute('data-id');
+          const catalogName = link.textContent.trim();
+          const catalogFullPath = link.getAttribute('data-full-name') || '';
+          if (!applyCatalogView(catalogId, catalogName, catalogFullPath)) {
+            window.location.href = href;
+            return;
+          }
 
-        const config = window.IORI_LAYOUT_CONFIG || {};
-        if (config.rememberLastCategory) {
-          if (catalogId) {
-            localStorage.setItem('iori_last_category', catalogId);
-            setCookie('iori_last_category', catalogId, 365);
-          } else {
-            localStorage.setItem('iori_last_category', 'all');
-            setCookie('iori_last_category', 'all', 365);
+          const config = window.IORI_LAYOUT_CONFIG || {};
+          if (config.rememberLastCategory) {
+            if (catalogId) {
+              localStorage.setItem('iori_last_category', catalogId);
+              setCookie('iori_last_category', catalogId, 365);
+            } else {
+              localStorage.setItem('iori_last_category', 'all');
+              setCookie('iori_last_category', 'all', 365);
+            }
           }
         }
+
+        // URL 跟着当前视图走（分类与分组都推一条历史记录），刷新与后退/前进都生效
+        try { history.pushState(null, '', href); } catch (err) { /* 旧浏览器或 file 协议下忽略 */ }
       } catch (err) {
         console.error('Client-side navigation failed:', err);
       }
+    });
+
+    // 后退/前进：按当前 URL 重新应用视图（?path= 分组、?catalog= 分类、都没有就是全部）
+    window.addEventListener('popstate', () => {
+      const params = new URLSearchParams(window.location.search);
+      const path = (params.get('path') || '').trim();
+      const catalog = (params.get('catalog') || '').trim();
+      if (path) {
+        const link = findSidebarLinkByPath(path);
+        const groupName = link ? link.textContent.trim() : shortNameFromPath(path);
+        if (!applyGroupView(path, groupName)) window.location.reload();
+        return;
+      }
+      if (catalog && catalog.toLowerCase() !== 'all') {
+        const link = findSidebarLinkById(catalog);
+        if (link) {
+          const catalogName = link.textContent.trim();
+          const catalogFullPath = link.getAttribute('data-full-name') || '';
+          if (!applyCatalogView(catalog, catalogName, catalogFullPath)) window.location.reload();
+          return;
+        }
+      }
+      if (!applyCatalogView(null, '', '')) window.location.reload();
     });
 
     function setCookie(name, value, days) {
@@ -755,7 +867,10 @@
       document.cookie = name + "=" + (value || "") + expires + "; path=/; SameSite=Lax";
     }
 
-    function updateNavigationState(catalogId) {
+    // catalogId：当前分类 id（全部视图为 null）；currentPath：当前视图完整路径
+    // （分类的完整路径或分组路径；全部视图为空）。小舒式按路径前缀判，祖先分组也变蓝，
+    // 与服务端渲染一致；树形只按精确匹配。
+    function updateNavigationState(catalogId, currentPath) {
       const allLinks = document.querySelectorAll('a.nav-btn, a.dropdown-item');
       allLinks.forEach(link => {
         const linkId = link.getAttribute('data-id');
@@ -800,7 +915,7 @@
         }
       }
 
-      if (!catalogId) {
+      if (!catalogId && !currentPath) {
         const allBtn = document.querySelector('a[href="?catalog=all"]');
         if (allBtn) {
           allBtn.classList.remove('inactive');
@@ -810,11 +925,16 @@
 
       const sidebar = document.getElementById('sidebar');
       if (sidebar) {
-        const links = sidebar.querySelectorAll('a[data-id], a[href="?catalog=all"]');
+        const links = sidebar.querySelectorAll('a[data-id], a[data-path], a[href="?catalog=all"]');
         links.forEach(link => {
           const svg = link.querySelector('svg');
           const linkId = link.getAttribute('data-id');
-          const isActive = (!catalogId && !linkId) || (String(linkId) === String(catalogId));
+          const linkPath = link.getAttribute('data-path') || link.getAttribute('data-full-name') || '';
+          const isBotab = !!link.closest('#sidebarBotabWrap');
+          const pathActive = currentPath && linkPath && (currentPath === linkPath || (isBotab && currentPath.startsWith(linkPath + ' / ')));
+          const idActive = catalogId && linkId && String(linkId) === String(catalogId);
+          const allActive = !catalogId && !currentPath && !linkId && !linkPath;
+          const isActive = Boolean(allActive || idActive || pathActive);
 
           if (isActive) {
             link.classList.remove('hover:bg-gray-100', 'text-gray-700', 'dark:hover:bg-gray-800', 'dark:text-gray-300');
@@ -836,22 +956,25 @@
         });
       }
 
-      // 侧栏树：当前分类的祖先节点展开，保证高亮项可见
+      // 侧栏树：当前分类/分组的祖先节点展开，保证高亮项可见
       if (catalogId) expandSidebarAncestors(catalogId);
+      if (currentPath) expandSidebarAncestorsByPath(currentPath);
 
       // 根目录横条只在“全部”与“收藏夹栏”视图下显示
-      updateRootStripVisibility(catalogId);
+      updateRootStripVisibility(catalogId, currentPath);
 
-      // 胶囊形子分类跟着当前分类变
-      updateCapsules(catalogId);
+      // 胶囊形子分类跟着当前分类/分组变
+      updateCapsules(catalogId, currentPath);
     }
 
     function restoreLastCategory() {
       const config = window.IORI_LAYOUT_CONFIG || {};
       const urlParams = new URLSearchParams(window.location.search);
       const hasCatalogParam = urlParams.has('catalog');
+      // 带 ?path= 打开时服务端已渲染分组视图，别让记住的分类把它盖掉
+      const hasPathParam = urlParams.has('path');
 
-      if (!config.rememberLastCategory || hasCatalogParam || !cardController) return;
+      if (!config.rememberLastCategory || hasCatalogParam || hasPathParam || !cardController) return;
 
       let lastId = localStorage.getItem('iori_last_category');
 
@@ -881,12 +1004,13 @@
 
       if (link) {
         const catalogName = link.innerText.trim();
+        const catalogFullPath = link.getAttribute('data-full-name') || '';
         const filteredSites = cardController.getSitesForCatalog(lastId);
 
         cardController.setActiveCatalogId(lastId);
         cardController.renderSites(filteredSites);
         Home.updateHeading?.(null, catalogName, filteredSites.length);
-        updateNavigationState(lastId);
+        updateNavigationState(lastId, catalogFullPath);
       } else {
         localStorage.removeItem('iori_last_category');
       }
