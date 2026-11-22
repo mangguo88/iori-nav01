@@ -26,11 +26,14 @@
     }
 
     // 悬停滑出：只给侧栏加 open，不带遮罩、不锁 body 滚动，侧栏浮在内容上面
+    // 侧栏藏起时只是移出屏幕、元素没销毁，scrollTop 会一直留着；
+    // 打开时先把 scrollTop 清零，滑出来直接看到最上面，不会停在上次的底部。
     function showSidebarHover() {
       if (!edgeHoverEnabled()) return;
       clearHideTimer();
       if (hoverOpen) return;
       hoverOpen = true;
+      if (sidebar) sidebar.scrollTop = 0;
       sidebar?.classList.add('open');
     }
 
@@ -76,6 +79,8 @@
     });
 
     function openSidebar() {
+      // 同上：打开时先把侧栏自己的 scrollTop 清零，看到最上面
+      if (sidebar) sidebar.scrollTop = 0;
       sidebar?.classList.add('open');
       mobileOverlay?.classList.add('open');
       document.body.style.overflow = 'hidden';
