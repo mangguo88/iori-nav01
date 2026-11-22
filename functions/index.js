@@ -3,7 +3,7 @@ import { isAdminAuthenticated, getHomeCacheKey, clearHomeCacheDirtyIfValue, mark
 import { FONT_MAP } from './constants';
 import { escapeHTML, sanitizeUrl, normalizeSortOrder, getStyleStr, sanitizeStyleColor } from './lib/utils';
 import { getSettingsKeys, parseSettings } from './lib/settings-parser';
-import { renderHorizontalMenu, renderSidebarTree, renderSidebarBotab, shortCategoryName, buildCategoryPathTree } from './lib/menu-renderer';
+import { renderSidebarTree, renderSidebarBotab, shortCategoryName, buildCategoryPathTree } from './lib/menu-renderer';
 import { renderSiteCards, renderEmptyState } from './lib/card-renderer';
 import { buildCardHydrationState, buildCardViewModel } from './lib/card-model';
 import { ensureSchemaReady } from './lib/schema-migration';
@@ -286,17 +286,12 @@ export async function onRequest(context) {
 
   // === 9. 生成菜单 HTML ===
   const allLinkActive = !catalogExists;
-  const allLinkClass = allLinkActive ? 'active' : 'inactive';
-  const allLinkActiveMarker = allLinkActive ? 'nav-item-active' : '';
   const allLinkSidebarClass = allLinkActive
     ? 'bg-secondary-100 text-primary-700 dark:bg-gray-800 dark:text-primary-400'
     : 'hover:bg-gray-100 text-gray-700 dark:text-gray-300 dark:hover:bg-gray-800';
   const allLinkSidebarIconClass = allLinkActive ? 'text-primary-600 dark:text-primary-400' : 'text-gray-400 dark:text-gray-500';
-  const horizontalAllLink = `
-    <div class="menu-item-wrapper relative inline-block text-left">
-      <a href="?catalog=all" class="nav-btn ${allLinkClass} ${allLinkActiveMarker}">全部</a>
-    </div>`;
-  const horizontalCatalogMarkup = horizontalAllLink + renderHorizontalMenu(rootCategories, currentCatalogName);
+  // 顶部横向标签栏已取消显示（2026-11-22 用户要求）：不再渲染横向分类导航，
+  // 分类导航只走左侧栏（桌面）与抽屉（手机）。
   const catalogLinkMarkup = renderSidebarTree(sidebarCategoryTree, catalogExists ? requestedCatalogId : null);
   const catalogBotabMarkup = renderSidebarBotab(sidebarCategoryTree, currentCatalogName);
 
@@ -442,31 +437,9 @@ export async function onRequest(context) {
   };
   const categoryPosition = normalizeCategoryPosition(S.home_category_position, S.layout_menu_layout);
   const isHorizontalCategoryLayout = categoryPosition !== 'left';
-  const categoryFlow = S.home_category_flow === 'multi_line' ? 'multi_line' : 'single_line';
-  // 分类行宽度 max-w-5xl（64rem），按钮 min-width: 4em+2rem，单行约 8 个
-  const horizontalCategoryNavShellClass = categoryPosition === 'top'
-    ? 'horizontal-category-nav-shell is-top relative mx-auto'
-    : 'horizontal-category-nav-shell relative mx-auto';
-  const horizontalCategoryNavJustifyClass = categoryFlow === 'multi_line' ? 'justify-start' : 'justify-center';
-  // 单行：nowrap + 宽度折叠（与预览一致）；多行：wrap 且无 more
-  const horizontalCategoryNavWrapClass = categoryFlow === 'multi_line' ? 'flex-wrap' : 'flex-nowrap';
-  // 单行也用 overflow-visible：overflow-hidden 会裁切多级下拉与「更多」弹出层
-  const horizontalCategoryNavOverflowClass = 'overflow-visible';
-  const horizontalCategoryNavFlowClass = categoryFlow === 'multi_line' ? 'is-multi-line' : 'is-single-line';
-  const horizontalMoreHtml = categoryFlow === 'multi_line' ? '' : `
-          <div id="horizontalMoreWrapper" class="relative hidden">
-            <button id="horizontalMoreBtn" class="nav-btn inactive">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z" /></svg>
-            </button>
-            <div id="horizontalMoreDropdown" class="dropdown-menu hidden absolute mt-2 w-auto z-50"></div>
-          </div>`;
-  const horizontalCategoryNavHtml = `
-      <div class="${horizontalCategoryNavShellClass}">
-        <div id="horizontalCategoryNav" class="flex ${horizontalCategoryNavWrapClass} ${horizontalCategoryNavJustifyClass} items-center gap-3 ${horizontalCategoryNavOverflowClass} ${horizontalCategoryNavFlowClass} transition-all duration-300">
-          ${horizontalCatalogMarkup}
-          ${horizontalMoreHtml}
-        </div>
-      </div>`;
+  // 顶部横向标签栏已取消显示（2026-11-22 用户要求），横向分类导航的
+  // 容器/单行折叠（“更多”下拉）不再渲染；home-category-nav.js 里相关
+  // 逻辑已有空值保护（navContainer/moreWrapper 为空时直接跳过），不会报错。
 
   const verticalHeaderContent = `
     <div class="max-w-4xl mx-auto text-center relative z-10 ${themeClass} py-8">
@@ -482,17 +455,14 @@ export async function onRequest(context) {
 
   const horizontalHeaderContent = `
     <div class="max-w-5xl mx-auto text-center relative z-10 ${themeClass}">
-      ${categoryPosition === 'top' ? `<div class="category-nav-top-wrap">${horizontalCategoryNavHtml}</div>` : ''}
       <div class="home-title-block max-w-4xl mx-auto mb-8">${horizontalTitleHtml}${horizontalSubtitleHtml}</div>
-      ${categoryPosition === 'above_search' ? `<div class="mb-8">${horizontalCategoryNavHtml}</div>` : ''}
-      <div class="home-search-shell relative max-w-xl mx-auto ${categoryPosition === 'below_search' ? 'mb-8' : ''}">
+      <div class="home-search-shell relative max-w-xl mx-auto">
         ${searchEngineOptions}
         <div class="home-search-field relative">
           <input id="headerSearchInput" type="search" placeholder="搜索书签..." class="search-input-target w-full pl-12 pr-4 py-3.5 rounded-2xl transition-all shadow-lg outline-none focus:outline-none focus:ring-2 ${searchInputClass}" autocomplete="new-password" autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="search" enterkeyhint="search" aria-label="搜索书签" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other">
           <svg xmlns="http://www.w3.org/2000/svg" class="home-search-icon h-6 w-6 absolute left-4 top-3.5 ${searchIconClass}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
         </div>
       </div>
-      ${categoryPosition === 'below_search' ? horizontalCategoryNavHtml : ''}
     </div>`;
 
   // === 15. 布局控制 ===

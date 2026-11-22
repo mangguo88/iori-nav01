@@ -2408,18 +2408,25 @@ body.theme-landscape .site-card.style-3:not(.frosted-glass-effect) .site-title {
 }
 
 /* ===== 收藏夹栏根目录圆形图标栏（仿 BoTab 圆形图标栏，只学展示形式）===== */
+/* 背景框只包住内容（宽度随内容走、居中），不通栏；固定显示：主区往下滚时贴在
+   视口顶部（页面用整文档滚动，没有独立滚动容器、也没有冻结顶栏占位，故 top: 0）；
+   底色不透明，滚动内容从下面过不透出来。z-index 40 在卡片内容之上、
+   在侧栏（z-50）与弹窗（z-50）之下。 */
 .root-dock {
-  max-width: 80rem;
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  width: max-content;
+  max-width: calc(100% - 2rem);
   margin: 1rem auto 0;
-  padding: 0.875rem 1rem 1rem;
-  background-color: rgba(255, 255, 255, 0.85);
+  padding: 0.625rem 0.875rem 0.75rem;
+  background-color: #ffffff;
   border: 1px solid rgba(147, 197, 253, 0.35);
   border-radius: 1rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-  backdrop-filter: blur(4px);
 }
 .dark .root-dock {
-  background-color: rgba(31, 41, 55, 0.85);
+  background-color: #1f2937;
   border-color: #374151;
 }
 .root-dock.hidden {
@@ -2429,7 +2436,7 @@ body.theme-landscape .site-card.style-3:not(.frosted-glass-effect) .site-title {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
 }
 .root-dock-label {
   font-size: 0.8125rem;
