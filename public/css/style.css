@@ -1931,6 +1931,13 @@ body .search-engine-option.active {
      露一条蓝色竖线；多移 2px 让边框和阴影完全出屏。 */
   .mobile-sidebar { transform: translateX(calc(-100% - 2px)); transition: transform 0.3s ease; }
   .mobile-sidebar.open { transform: translateX(0); }
+  /* 右边滑出：left 归 auto、right 贴 0，藏起时向右移出（+100%），打开同样是 0，
+     与左边共用 0.3s 过渡；边框换到左边（右边框归零、左边框 1px），颜色沿用
+     原来的 border-color。注意毛玻璃规则用 !important 写死了 border-right，
+     所以这里的宽度也要 !important 才能盖掉它（ID 选择器优先级更高）。 */
+  .mobile-sidebar.sidebar-right { left: auto; right: 0; transform: translateX(calc(100% + 2px)); }
+  .mobile-sidebar.sidebar-right.open { transform: translateX(0); }
+  #sidebar.sidebar-right { border-right-width: 0 !important; border-left-width: 1px !important; }
   .mobile-overlay { opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
   .mobile-overlay.open { opacity: 1; pointer-events: auto; }
 }
