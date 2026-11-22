@@ -123,37 +123,6 @@
     }, 2500);
   }
 
-  function initHitokoto() {
-    const hitokotoContainer = document.querySelector('#hitokoto')?.parentElement;
-    if (!hitokotoContainer || hitokotoContainer.classList.contains('hidden')) return;
-
-    // 一言只是装饰内容，请求失败时直接隐藏，不打断页面
-    const hideHitokoto = () => {
-      hitokotoContainer.classList.add('hidden');
-      // 统计标题也被隐藏时整行已无内容，一并隐藏避免留下 my-8 的空白
-      const heading = hitokotoContainer.parentElement?.querySelector('[data-role="list-heading"]');
-      if (heading?.classList.contains('hidden')) {
-        hitokotoContainer.closest('.home-stats-row')?.classList.add('hidden');
-      }
-    };
-
-    fetch('https://v1.hitokoto.cn', { signal: AbortSignal.timeout(3000) })
-      .then(res => {
-        if (!res.ok) throw new Error(`Hitokoto request failed: ${res.status}`);
-        return res.json();
-      })
-      .then(data => {
-        const hitokoto = document.getElementById('hitokoto_text');
-        if (!hitokoto || !data?.hitokoto) {
-          hideHitokoto();
-          return;
-        }
-        hitokoto.href = data.uuid ? `https://hitokoto.cn/?uuid=${encodeURIComponent(data.uuid)}` : 'https://hitokoto.cn/';
-        hitokoto.innerText = data.hitokoto;
-      })
-      .catch(hideHitokoto);
-  }
-
   function initThemeToggle() {
     const themeToggleBtn = document.getElementById('themeToggleBtn');
     if (!themeToggleBtn) return;
@@ -195,7 +164,6 @@
 
     initCopyButtons();
     initBackToTop();
-    initHitokoto();
     initThemeToggle();
   };
 })();

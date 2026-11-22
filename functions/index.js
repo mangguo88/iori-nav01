@@ -425,9 +425,8 @@ export async function onRequest(context) {
   const titleStyle = getStyleStr(S.home_title_size, S.home_title_color, S.home_title_font);
   const subtitleStyle = getStyleStr(S.home_subtitle_size, S.home_subtitle_color, S.home_subtitle_font);
   const statsStyle = getStyleStr(S.home_stats_size, S.home_stats_color, S.home_stats_font);
-  const hitokotoStyle = getStyleStr(S.home_hitokoto_size, S.home_hitokoto_color, S.home_hitokoto_font);
-  const hitokotoContent = S.home_hide_hitokoto ? '' : '疏影横斜水清浅,暗香浮动月黄昏。';
-  const shouldRenderStatsRow = !S.home_hide_stats || !S.home_hide_hitokoto;
+  // 一言已去掉：统计行只在“统计标题显示”或“有胶囊子分类”时渲染
+  const shouldRenderStatsRow = !S.home_hide_stats || Boolean(subCapsuleEntry);
   const statsRowPyClass = shouldRenderStatsRow ? 'my-8' : 'hidden';
   const statsRowHiddenClass = shouldRenderStatsRow ? '' : 'hidden';
 
@@ -522,8 +521,6 @@ export async function onRequest(context) {
   const footerClass = isCustomWallpaper
     ? 'bg-transparent py-8 px-6 mt-12 border-none shadow-none'
     : 'bg-white py-8 px-6 mt-12 border-t border-primary-100 dark:bg-gray-900 dark:border-gray-800';
-  const hitokotoClass = (isCustomWallpaper ? 'text-black dark:text-gray-200' : 'text-gray-500 dark:text-gray-400') + ' ml-auto';
-
   // === 16. 模板注入 ===
   let html = templateHtml;
 
@@ -586,7 +583,6 @@ export async function onRequest(context) {
   if (!S.layout_hide_title && S.home_title_font) usedFonts.add(S.home_title_font);
   if (!S.layout_hide_subtitle && S.home_subtitle_font) usedFonts.add(S.home_subtitle_font);
   if (!S.home_hide_stats && S.home_stats_font) usedFonts.add(S.home_stats_font);
-  if (!S.home_hide_hitokoto && S.home_hitokoto_font) usedFonts.add(S.home_hitokoto_font);
   if (S.card_title_font) usedFonts.add(S.card_title_font);
   if (S.card_desc_font) usedFonts.add(S.card_desc_font);
   if (S.mobile_card_title_font) usedFonts.add(S.mobile_card_title_font);
@@ -698,7 +694,6 @@ export async function onRequest(context) {
     'HEADER_CLASS': headerClass,
     'CONTAINER_CLASS': containerClass,
     'FOOTER_CLASS': footerClass,
-    'HITOKOTO_CLASS': hitokotoClass,
     'LEFT_TOP_ACTION': leftTopActionHtml,
     'RIGHT_TOP_ACTION': topRightActionsHtml,
     'SITE_NAME': escapeHTML(siteName),
@@ -719,11 +714,8 @@ export async function onRequest(context) {
     'ALL_LINK_ICON_CLASS': allLinkSidebarIconClass,
     'STATS_VISIBLE': S.home_hide_stats ? 'hidden' : '',
     'STATS_STYLE': statsStyle,
-    'HITOKOTO_VISIBLE': S.home_hide_hitokoto ? 'hidden' : '',
     'STATS_ROW_PY_CLASS': statsRowPyClass,
     'STATS_ROW_HIDDEN': statsRowHiddenClass,
-    'HITOKOTO_CONTENT': hitokotoContent,
-    'HITOKOTO_STYLE': hitokotoStyle,
     'SITES_GRID': sitesGridMarkup,
     'CURRENT_YEAR': String(new Date().getFullYear()),
     'SIDEBAR_CLASS': sidebarClass,
