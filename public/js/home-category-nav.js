@@ -315,15 +315,24 @@
       } catch (e) { return 'botab'; }
     }
 
+    // 抽屉里始终用小舒式：窄窗口（<1024px）下不管 localStorage 里存的是什么模式，
+    // 都按小舒式显示（这样顶栏图标/数量隐藏、当前项只变蓝等小舒规则也一并生效）；
+    // 宽屏下按存的选择来。切换时不改 localStorage，窗口改回宽屏会自动恢复存的模式。
+    function isDrawerViewport() {
+      try { return window.matchMedia('(max-width: 1023px)').matches; }
+      catch (e) { return false; }
+    }
+
     function applySidebarMode(mode) {
+      const effectiveMode = isDrawerViewport() ? 'botab' : mode;
       const sidebar = document.getElementById('sidebar');
       if (!sidebar) return;
-      sidebar.classList.toggle('sidebar-mode-tree', mode === 'tree');
-      sidebar.classList.toggle('sidebar-mode-botab', mode !== 'tree');
+      sidebar.classList.toggle('sidebar-mode-tree', effectiveMode === 'tree');
+      sidebar.classList.toggle('sidebar-mode-botab', effectiveMode !== 'tree');
       const botabBtn = document.getElementById('sidebarModeBotabBtn');
       const treeBtn = document.getElementById('sidebarModeTreeBtn');
-      if (botabBtn) botabBtn.classList.toggle('is-active', mode !== 'tree');
-      if (treeBtn) treeBtn.classList.toggle('is-active', mode === 'tree');
+      if (botabBtn) botabBtn.classList.toggle('is-active', effectiveMode !== 'tree');
+      if (treeBtn) treeBtn.classList.toggle('is-active', effectiveMode === 'tree');
     }
 
     function initSidebarMode() {
@@ -337,6 +346,13 @@
       };
       if (botabBtn) botabBtn.addEventListener('click', () => save('botab'));
       if (treeBtn) treeBtn.addEventListener('click', () => save('tree'));
+      // 窗口在抽屉（<1024px）与宽屏之间切换时重新按当前宽度套用模式，不用刷新
+      try {
+        const drawerQuery = window.matchMedia('(max-width: 1023px)');
+        const onDrawerQueryChange = () => applySidebarMode(getSidebarMode());
+        if (typeof drawerQuery.addEventListener === 'function') drawerQuery.addEventListener('change', onDrawerQueryChange);
+        else if (typeof drawerQuery.addListener === 'function') drawerQuery.addListener(onDrawerQueryChange);
+      } catch (e) { /* 不支持 matchMedia 时忽略 */ }
     }
 
     // ---- 侧栏设置：宽度 + 底色（选择存 localStorage，树形/小舒两种模式都生效）----
