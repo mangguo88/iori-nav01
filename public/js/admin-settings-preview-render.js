@@ -269,9 +269,6 @@
     const sidebarCategories = root.querySelector('[data-preview-role="sidebarCategories"]');
     const sidebarTitle = root.querySelector('[data-preview-role="sidebarTitle"]');
     const adminIcon = root.querySelector('[data-preview-role="adminIcon"]');
-    const metaRow = root.querySelector('[data-preview-role="metaRow"]');
-    const statsText = root.querySelector('[data-preview-role="statsText"]');
-    const hitokotoText = root.querySelector('[data-preview-role="hitokotoText"]');
     const cardGrid = root.querySelector('[data-preview-role="cardGrid"]');
     const footerYear = root.querySelector('[data-preview-role="footerYear"]');
     const footerText = root.querySelector('[data-preview-role="footerText"]');
@@ -354,21 +351,7 @@
     nav.renderCategoryNav(sidebarCategories, categoryTree, activeCategory, true, { variant: 'sidebar' });
     updateHeroOrder(root, settings);
 
-    if (metaRow) {
-      metaRow.style.display = (settings.hideStats && settings.hideHitokoto) ? 'none' : 'flex';
-    }
-    if (statsText) {
-      const countText = previewState?.isLoaded
-        ? `${previewState.total} 个书签`
-        : '正在加载书签';
-      statsText.textContent = activeCategory ? `${activeCategory} · ${countText}` : `全部收藏 · ${countText}`;
-      statsText.style.display = settings.hideStats ? 'none' : '';
-      shared.applyTextStyle(statsText, settings.statsFont, settings.statsSize, settings.statsColor);
-    }
-    if (hitokotoText) {
-      hitokotoText.style.display = settings.hideHitokoto ? 'none' : '';
-      shared.applyTextStyle(hitokotoText, settings.hitokotoFont, settings.hitokotoSize, settings.hitokotoColor);
-    }
+    // 统计标题行与一言已从首页去掉（2026-11-22），预览里也不再渲染它们
     if (footerYear) footerYear.textContent = String(new Date().getFullYear());
     if (footerText) footerText.textContent = settings.footerText;
 

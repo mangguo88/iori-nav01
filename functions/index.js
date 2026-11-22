@@ -317,6 +317,9 @@ export async function onRequest(context) {
       <button id="dockSettingsBtn" type="button" class="root-dock-settings-btn" title="图标栏设置" aria-label="图标栏设置">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
       </button>
+      <button id="searchToggleBtn" type="button" class="root-dock-settings-btn" title="隐藏搜索栏" aria-label="显示或隐藏搜索栏" aria-pressed="false">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+      </button>
       <div id="dockSettingsPanel" class="root-dock-settings-panel hidden">
         <div class="root-dock-settings-title">图标栏设置</div>
         <div class="root-dock-settings-label">对齐方式</div>
@@ -418,12 +421,6 @@ export async function onRequest(context) {
   let gridClass = `grid ${getMobileGridClass(S.mobile_layout_grid_cols)} ${getDesktopGridClass(S.layout_grid_cols)} ${mobileCardStyleClass} ${desktopCardStyleClass} gap-3 sm:gap-6 justify-items-center`;
 
   // === 12. 计算文本和统计信息 ===
-  // 标题栏的当前分类只显示短名（如 "vps服务器"），完整路径在侧栏/导航的 title 提示里
-  const headingCatalogShort = currentCatalogName ? shortCategoryName(currentCatalogName) : '';
-  const headingPlainText = currentCatalogName ? `${headingCatalogShort} · ${sites.length} 个书签` : `全部收藏 · ${sites.length} 个书签`;
-  const headingText = escapeHTML(headingPlainText);
-  const headingDefaultAttr = escapeHTML(headingPlainText);
-  const headingActiveAttr = catalogExists ? escapeHTML(headingCatalogShort) : '';
   const submissionEnabled = String(env.ENABLE_PUBLIC_SUBMISSION) === 'true';
   const submissionClass = submissionEnabled ? '' : '!hidden';
   const siteName = S.home_site_name || env.SITE_NAME || '灰色轨迹';
@@ -431,11 +428,10 @@ export async function onRequest(context) {
   const footerText = S.home_footer_text || env.FOOTER_TEXT || '曾梦想仗剑走天涯';
   const titleStyle = getStyleStr(S.home_title_size, S.home_title_color, S.home_title_font);
   const subtitleStyle = getStyleStr(S.home_subtitle_size, S.home_subtitle_color, S.home_subtitle_font);
-  const statsStyle = getStyleStr(S.home_stats_size, S.home_stats_color, S.home_stats_font);
-  // 一言已去掉：统计行只在“统计标题显示”或“有胶囊子分类”时渲染
-  const shouldRenderStatsRow = !S.home_hide_stats || Boolean(subCapsuleEntry);
-  const statsRowPyClass = shouldRenderStatsRow ? 'my-8' : 'hidden';
-  const statsRowHiddenClass = shouldRenderStatsRow ? '' : 'hidden';
+  // 统计标题行已整个去掉（2026-11-22 用户要求）：这一行现在只在有胶囊子分类时渲染，
+  // 只包胶囊，不再显示“全部收藏 · N 个书签”；没有胶囊时整行不占高度。
+  const shouldRenderStatsRow = Boolean(subCapsuleEntry);
+  const statsRowPyClass = shouldRenderStatsRow ? 'my-4' : 'hidden';
 
   // === 13. 搜索引擎选项 ===
   const searchEngineOptions = S.home_search_engine_enabled ? `
@@ -463,8 +459,8 @@ export async function onRequest(context) {
   // 逻辑已有空值保护（navContainer/moreWrapper 为空时直接跳过），不会报错。
 
   const verticalHeaderContent = `
-    <div class="max-w-4xl mx-auto text-center relative z-10 ${themeClass} py-8">
-      <div class="home-title-block mb-8">${horizontalTitleHtml}${horizontalSubtitleHtml}</div>
+    <div class="max-w-4xl mx-auto text-center relative z-10 ${themeClass} py-2">
+      <div class="home-title-block mb-3">${horizontalTitleHtml}${horizontalSubtitleHtml}</div>
       <div class="home-search-shell relative max-w-xl mx-auto">
         ${searchEngineOptions}
         <div class="home-search-field relative">
@@ -476,7 +472,7 @@ export async function onRequest(context) {
 
   const horizontalHeaderContent = `
     <div class="max-w-5xl mx-auto text-center relative z-10 ${themeClass}">
-      <div class="home-title-block max-w-4xl mx-auto mb-8">${horizontalTitleHtml}${horizontalSubtitleHtml}</div>
+      <div class="home-title-block max-w-4xl mx-auto mb-3">${horizontalTitleHtml}${horizontalSubtitleHtml}</div>
       <div class="home-search-shell relative max-w-xl mx-auto">
         ${searchEngineOptions}
         <div class="home-search-field relative">
@@ -589,7 +585,6 @@ export async function onRequest(context) {
   const usedFonts = new Set();
   if (!S.layout_hide_title && S.home_title_font) usedFonts.add(S.home_title_font);
   if (!S.layout_hide_subtitle && S.home_subtitle_font) usedFonts.add(S.home_subtitle_font);
-  if (!S.home_hide_stats && S.home_stats_font) usedFonts.add(S.home_stats_font);
   if (S.card_title_font) usedFonts.add(S.card_title_font);
   if (S.card_desc_font) usedFonts.add(S.card_desc_font);
   if (S.mobile_card_title_font) usedFonts.add(S.mobile_card_title_font);
@@ -713,16 +708,10 @@ export async function onRequest(context) {
     'ROOT_STRIP': rootStripHtml,
     'SUB_CAPSULES': subCapsulesHtml,
     'SUBMISSION_CLASS': submissionClass,
-    'HEADING_TEXT': headingText,
-    'HEADING_DEFAULT': headingDefaultAttr,
-    'HEADING_ACTIVE': headingActiveAttr,
     'TOTAL_SITES': String(allSites.length),
     'ALL_LINK_CLASS': allLinkSidebarClass,
     'ALL_LINK_ICON_CLASS': allLinkSidebarIconClass,
-    'STATS_VISIBLE': S.home_hide_stats ? 'hidden' : '',
-    'STATS_STYLE': statsStyle,
     'STATS_ROW_PY_CLASS': statsRowPyClass,
-    'STATS_ROW_HIDDEN': statsRowHiddenClass,
     'SITES_GRID': sitesGridMarkup,
     'CURRENT_YEAR': String(new Date().getFullYear()),
     'SIDEBAR_CLASS': sidebarClass,

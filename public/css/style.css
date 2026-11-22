@@ -1297,13 +1297,13 @@ body .search-engine-option.active {
   }
 
   body.desktop-page-style3 header {
-    padding-top: 2.75rem;
-    padding-bottom: 2.8rem;
+    padding-top: 1.1rem;
+    padding-bottom: 0.9rem;
   }
 
   body.desktop-page-style3 .home-title-block {
     margin-top: 0.25rem;
-    margin-bottom: 2rem;
+    margin-bottom: 0.75rem;
   }
 
   /* 风格三 + 分类顶部的细节在下方完整 nav 规则中统一处理 */
@@ -1464,7 +1464,7 @@ body .search-engine-option.active {
   /* 风格三 + 顶部：分类与右上角夜间/后台按钮（top-4 + 2.5rem）水平对齐 */
   body.desktop-page-style3.category-pos-top header {
     padding-top: 1rem !important; /* 与 fixed top-4 对齐 */
-    padding-bottom: 2rem !important;
+    padding-bottom: 0.9rem !important;
   }
 
   body.desktop-page-style3.category-pos-top .category-nav-top-wrap {
@@ -1509,7 +1509,7 @@ body .search-engine-option.active {
 
   body.desktop-page-style3.category-pos-top .home-title-block {
     margin-top: 0.25rem !important;
-    margin-bottom: 1.35rem !important;
+    margin-bottom: 0.75rem !important;
   }
 
   body.desktop-page-style3.category-pos-top .home-title-block h1 {
@@ -1523,12 +1523,6 @@ body .search-engine-option.active {
   body.desktop-page-style3 .home-stats-row {
     margin-top: 0.75rem !important;
     margin-bottom: 0.75rem !important;
-  }
-
-  body.desktop-page-style3 .home-stats-row h2 {
-    color: rgba(255, 255, 255, 0.78) !important;
-    font-size: 0.95rem;
-    font-weight: 500;
   }
 
   body.desktop-page-style3 .main-content > section > div {
@@ -1568,13 +1562,13 @@ body .search-engine-option.active {
   }
 
   body.mobile-page-style3 header {
-    padding-top: 2rem;
-    padding-bottom: 1.75rem;
+    padding-top: 1rem;
+    padding-bottom: 0.75rem;
   }
 
   body.mobile-page-style3 .home-title-block {
     margin-top: 0.15rem;
-    margin-bottom: 1.5rem;
+    margin-bottom: 0.75rem;
   }
 
   /* 手机风格三 + 顶部细节见下方完整规则 */
@@ -1717,11 +1711,6 @@ body .search-engine-option.active {
   body.mobile-page-style3 .home-stats-row {
     margin-top: 0.5rem !important;
     margin-bottom: 0.5rem !important;
-  }
-
-  body.mobile-page-style3 .home-stats-row h2 {
-    color: rgba(255, 255, 255, 0.78) !important;
-    font-size: 0.875rem;
   }
 
   body.mobile-page-style3 footer,
@@ -2349,7 +2338,6 @@ body.strip-cards .site-card.style-2 .inline-flex { margin: 0.25rem 0 0; }
    卡片改深色底，同样受 --card-bg-opacity 控制；深色模式已开时也一样生效。 */
 body.theme-meteor .home-title-block h1 { color: #fff !important; }
 body.theme-meteor .home-title-block p { color: rgba(255, 255, 255, 0.72) !important; }
-body.theme-meteor .home-stats-row h2 { color: #f3f4f6 !important; }
 body.theme-meteor footer { color: rgba(255, 255, 255, 0.55) !important; }
 body.theme-meteor footer a { color: rgba(255, 255, 255, 0.75) !important; }
 body.theme-meteor .site-card:not(.frosted-glass-effect) {
@@ -2454,7 +2442,7 @@ body.theme-landscape .site-card.style-3:not(.frosted-glass-effect) .site-title {
   align-items: flex-start;
   width: max-content;
   max-width: calc(100% - 2rem);
-  margin: 1rem auto 0;
+  margin: 0.5rem auto 0;
   padding: 0.25rem 0.5rem 0.5rem;
   background: transparent;
   border: 0;
@@ -2464,6 +2452,13 @@ html[data-dock-align="left"] .root-dock { margin-left: 0; margin-right: auto; }
 html[data-dock-align="right"] .root-dock { margin-left: auto; margin-right: 0; }
 .root-dock.hidden {
   display: none;
+}
+/* 搜索栏收起：整块不占高度（由图标栏旁边的放大镜按钮切换，记 localStorage） */
+html[data-search-hidden="1"] .home-search-shell {
+  display: none;
+}
+#searchToggleBtn.is-off {
+  opacity: 0.55;
 }
 .root-dock-items {
   display: flex;

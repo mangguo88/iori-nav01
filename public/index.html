@@ -17,7 +17,7 @@
   <meta name="twitter:description" content="{{SITE_DESCRIPTION}}">
   <meta name="twitter:image" content="{{OG_IMAGE_URL}}">
   <link rel="icon" href="/favicon.svg?v=148aafdf" type="image/svg+xml">
-  <link rel="stylesheet" href="/css/style.css?v=8ed7138a">
+  <link rel="stylesheet" href="/css/style.css?v=50e74959">
   <script>
     // Init Theme ASAP to prevent FOUC
     if (localStorage.getItem('theme') === 'dark') {
@@ -42,6 +42,8 @@
       if (_dkg >= 8 && _dkg <= 32) document.documentElement.style.setProperty('--dock-gap', _dkg + 'px');
       var _dkfc = localStorage.getItem('iori_dock_font_color_v1') || 'default';
       if (['gray', 'blue', 'white'].indexOf(_dkfc) >= 0) document.documentElement.setAttribute('data-dock-font-color', _dkfc);
+      var _shd = localStorage.getItem('iori_search_hidden_v1');
+      if (_shd === '1') document.documentElement.setAttribute('data-search-hidden', '1');
     } catch (e) { /* 隐私模式等读不到时静默忽略，用默认样式 */ }
   </script>
   <link rel="stylesheet" href="/css/tailwind.min.css?v=eb523845">
@@ -190,18 +192,13 @@
   
   <!-- 主内容区 -->
   <main class="main-content {{MAIN_CLASS}} min-h-screen transition-all duration-300">
-    <header class="{{HEADER_CLASS}} text-white py-10 px-6 md:px-10 shadow-sm">
+    <header class="{{HEADER_CLASS}} text-white py-4 px-6 md:px-10 shadow-sm">
       {{HEADER_CONTENT}}
     </header>
 
     {{ROOT_STRIP}}
 
     <div class="home-stats-row max-w-7xl mx-auto px-4 sm:px-6 {{STATS_ROW_PY_CLASS}}">
-      <div class="flex items-center justify-between {{STATS_ROW_HIDDEN}}">
-        <h2 class="text-xl font-semibold text-gray-800 {{STATS_VISIBLE}}" {{STATS_STYLE}} data-role="list-heading" data-default="{{HEADING_DEFAULT}}" data-active="{{HEADING_ACTIVE}}">
-          {{HEADING_TEXT}}
-        </h2>
-      </div>
       {{SUB_CAPSULES}}
     </div>
     
@@ -300,7 +297,7 @@
   <script src="/js/home-cards.js?v=a8e67422"></script>
   <script src="/js/home-submit.js?v=5457a66d"></script>
   <script src="/js/home-search.js?v=5eadfb7e"></script>
-  <script src="/js/home-category-nav.js?v=0c15139b"></script>
+  <script src="/js/home-category-nav.js?v=285183c1"></script>
   <script src="/js/main.js?v=193ce81f"></script>
 </body>
 </html>

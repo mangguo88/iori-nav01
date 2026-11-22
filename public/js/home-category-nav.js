@@ -550,6 +550,38 @@
       if (valueEl) valueEl.textContent = px + 'px';
     }
 
+    // ---- 搜索栏收起/展开：图标栏右端的放大镜按钮，记 localStorage，刷新后保持 ----
+    const SEARCH_HIDDEN_KEY = 'iori_search_hidden_v1';
+
+    function getSearchHidden() {
+      try { return localStorage.getItem(SEARCH_HIDDEN_KEY) === '1'; }
+      catch (e) { return false; }
+    }
+
+    function applySearchHidden(hidden) {
+      if (hidden) document.documentElement.setAttribute('data-search-hidden', '1');
+      else document.documentElement.removeAttribute('data-search-hidden');
+      const btn = document.getElementById('searchToggleBtn');
+      if (btn) {
+        btn.classList.toggle('is-off', hidden);
+        btn.title = hidden ? '显示搜索栏' : '隐藏搜索栏';
+        btn.setAttribute('aria-pressed', hidden ? 'true' : 'false');
+      }
+    }
+
+    function initSearchToggle() {
+      const btn = document.getElementById('searchToggleBtn');
+      if (!btn) return; // 图标栏只在“全部”与“收藏夹栏”视图显示
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const hidden = !getSearchHidden();
+        try { localStorage.setItem(SEARCH_HIDDEN_KEY, hidden ? '1' : '0'); } catch (err) { /* 隐私模式等写不进时静默忽略 */ }
+        applySearchHidden(hidden);
+      });
+      // 与 <head> 里提前恢复的值同步一次按钮状态
+      applySearchHidden(getSearchHidden());
+    }
+
     function initDockSettings() {
       const panel = document.getElementById('dockSettingsPanel');
       const toggleBtn = document.getElementById('dockSettingsBtn');
@@ -618,11 +650,15 @@
     function updateCapsules(catalogId) {
       const wrap = document.getElementById('subCapsules');
       if (!wrap) return;
+      // 统计标题行已去掉，外层 .home-stats-row 现在只包胶囊：站内切分类时外层也要跟着显隐，
+      // 否则从无胶囊的分类切到有胶囊的分类时，胶囊会被藏在 hidden 的外层里看不见。
+      const row = wrap.closest('.home-stats-row');
       const map = window.IORI_CAPSULES || {};
       const entry = (!catalogId ? null : map[String(catalogId)]) || null;
       if (!entry || !entry.items || entry.items.length === 0) {
         wrap.classList.add('hidden');
         wrap.innerHTML = '';
+        if (row) row.classList.add('hidden');
         return;
       }
       wrap.innerHTML = entry.items.map((item) => {
@@ -630,6 +666,7 @@
         return `<a href="?catalog=${encodeURIComponent(String(item.id))}" data-id="${item.id}" data-full-name="${escapeCapsuleHtml(item.fullPath || item.name)}" title="${escapeCapsuleHtml(item.fullPath || item.name)}" class="sub-capsule${isActive ? ' is-active' : ''}">${escapeCapsuleHtml(item.name)}</a>`;
       }).join('');
       wrap.classList.remove('hidden');
+      if (row) row.classList.remove('hidden');
     }
 
     // ---- 根目录书签横条：只在“全部”和“收藏夹栏”视图下显示 ----
@@ -844,6 +881,7 @@
     initSidebarMode();
     initSidebarSettings();
     initDockSettings();
+    initSearchToggle();
     restoreLastCategory();
   };
 })();
