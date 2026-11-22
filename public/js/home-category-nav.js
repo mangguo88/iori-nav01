@@ -651,11 +651,14 @@
       if (!strip || !scroller) return;
       // 标题区滚动自动收起：页面一滑动（滚过约 10px）就收起标题块，只剩图标栏
       // 钉在上面；滚回顶部恢复。5px 回差避免在阈值附近来回抖动。
-      const titleBlock = document.querySelector('.home-title-block');
+      // 注意首页有两个 .home-title-block（手机版在 min-[550px]:hidden 里藏着，
+      // 桌面版在 hidden min-[550px]:block 里）：必须两个都处理，querySelector
+      // 只取第一个会取到藏着的手机版，桌面版就永远收不起来。
+      const titleBlocks = document.querySelectorAll('.home-title-block');
       const updateTitleCollapseState = () => {
-        if (!titleBlock) return;
-        if (scroller.scrollTop > 10) titleBlock.classList.add('is-collapsed');
-        else if (scroller.scrollTop < 5) titleBlock.classList.remove('is-collapsed');
+        if (titleBlocks.length === 0) return;
+        if (scroller.scrollTop > 10) titleBlocks.forEach((block) => block.classList.add('is-collapsed'));
+        else if (scroller.scrollTop < 5) titleBlocks.forEach((block) => block.classList.remove('is-collapsed'));
       };
       let ticking = false;
       updateDockStuckState = () => {
