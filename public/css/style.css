@@ -403,6 +403,13 @@ header {
    侧栏从右边滑出来时它也浮在上面，始终能点到。 */
 div.top-right-actions { z-index: 80; }
 
+/* 编辑弹窗（完整编辑 #fullEditModal、描述编辑 #descEditModal）：JS 里写的是
+   z-50，低于冻结顶栏（60）。窗口矮一点、或胶囊栏换行把顶栏撑高时，弹窗居中后
+   顶部会伸到顶栏底边下面，标题栏和关闭 × 被顶栏的壁纸背景盖住、看不见也点不到。
+   提到 100，盖过顶栏（60）、侧栏（70）和右上角按钮组（80），仍在抽屉（800）
+   和登录弹窗（900）之下。 */
+#fullEditModal, #descEditModal { z-index: 100; }
+
 .top-action-icon {
   display: inline-flex;
   align-items: center;
