@@ -135,9 +135,12 @@ export function renderSidebarTree(root, currentCatalogId, currentPath) {
 
 /**
  * 渲染左侧栏小舒式列表（仿 BoTab 侧栏，只学展示形式）：
- * 纯文字竖排，只列顶级文件夹——每个一级节点一行，紧接着列出它的一级子文件夹
- * （如 收藏夹栏、VPS类、账号类、工具类……）；没有折叠、没有文件夹图标、
- * 没有数量、不截断名字。当前分类或其祖先分类那一行变蓝。
+ * 纯文字竖排，默认只列顶级文件夹与它的一级子文件夹；整棵树按深度优先扁平化
+ * 渲染，每行带 data-depth（0 起）与 data-parent-path，深层行（depth>=2）
+ * 默认隐藏——当前选中的分组展开时，它的子文件夹才显示出来（缩进一级排在它
+ * 下面），其他文件夹照常显示；点进子文件夹后，选中项的兄弟们继续显示，
+ * 侧栏不重排、不藏其他文件夹（显隐由前端按 currentPath 再算，服务端先按
+ * 当前路径算好首屏）。当前分类或其祖先分类那一行变绿（绿色底框）。
  * 没有 id 的分组节点（如 VPS类）也渲染成可点链接（?path= 完整路径），
  * 点一下进分组视图，看它下面全部子文件夹的书签。
  * @param {object} root - buildCategoryPathTree 返回的路径树根节点
@@ -148,27 +151,32 @@ export function renderSidebarBotab(root, currentCatalogFullPath) {
   if (!root || !root.children || root.children.length === 0) return '';
   const currentPath = String(currentCatalogFullPath || '').trim();
   const isActivePath = (fullPath) => currentPath !== '' && (currentPath === fullPath || currentPath.startsWith(fullPath + ' / '));
+  // 深层行是否默认展开：父级是当前选中项（或其祖先）时展开，其余默认隐藏
+  const isExpanded = (parentPath) => parentPath !== '' && currentPath !== '' && (currentPath === parentPath || currentPath.startsWith(parentPath + ' / '));
   const rows = [];
-  const pushRow = (node) => {
+  const pushRow = (node, depth, parentPath) => {
     const safeFull = escapeHTML(node.fullPath);
     const shortName = escapeHTML(node.name);
     const active = isActivePath(node.fullPath);
     const activeClass = active
-      ? 'bg-secondary-100 text-primary-700 dark:bg-gray-800 dark:text-primary-400'
+      ? 'sidebar-active-green'
       : 'hover:bg-gray-100 text-gray-700 dark:text-gray-300 dark:hover:bg-gray-800';
+    const deepHidden = depth >= 2 && !isExpanded(parentPath) ? ' hidden' : '';
+    // 分组没有 id：把汇总书签数带上，前端点分组筛出 0 封时靠它判断下面是不是真有书签
+    const countAttr = (node.id === null || node.id === undefined) ? ` data-count="${Number(node.count) || 0}"` : '';
+    const rowOpen = `<div class="sidebar-botab-row${deepHidden}" data-depth="${depth}" data-parent-path="${escapeHTML(parentPath)}">`;
     if (node.id !== null && node.id !== undefined) {
-      rows.push(`<div class="sidebar-botab-row"><a href="?catalog=${encodeURIComponent(String(node.id))}" data-id="${node.id}" data-full-name="${safeFull}" title="${safeFull}" class="sidebar-botab-link flex items-center px-3 py-2 rounded-lg flex-1 min-w-0 transition-colors duration-200 ${activeClass}"><span class="sidebar-botab-name">${shortName}</span></a></div>`);
+      rows.push(`${rowOpen}<a href="?catalog=${encodeURIComponent(String(node.id))}" data-id="${node.id}" data-full-name="${safeFull}" title="${safeFull}" class="sidebar-botab-link flex items-center px-3 py-2 rounded-lg flex-1 min-w-0 transition-colors duration-200 ${activeClass}"><span class="sidebar-botab-name">${shortName}</span></a></div>`);
     } else {
       // 没有 id 的分组节点：也渲染成可点链接（?path= 完整路径），进分组视图
-      rows.push(`<div class="sidebar-botab-row"><a href="?path=${encodeURIComponent(node.fullPath)}" data-path="${safeFull}" data-full-name="${safeFull}" title="${safeFull}" class="sidebar-botab-link sidebar-botab-group flex items-center px-3 py-2 rounded-lg flex-1 min-w-0 transition-colors duration-200 ${activeClass}"><span class="sidebar-botab-name">${shortName}</span></a></div>`);
+      rows.push(`${rowOpen}<a href="?path=${encodeURIComponent(node.fullPath)}" data-path="${safeFull}" data-full-name="${safeFull}" title="${safeFull}"${countAttr} class="sidebar-botab-link sidebar-botab-group flex items-center px-3 py-2 rounded-lg flex-1 min-w-0 transition-colors duration-200 ${activeClass}"><span class="sidebar-botab-name">${shortName}</span></a></div>`);
     }
   };
-  for (const node of root.children) {
-    pushRow(node);
-    if (node.children && node.children.length > 0) {
-      for (const child of node.children) pushRow(child);
-    }
-  }
+  const walk = (node, depth, parentPath) => {
+    pushRow(node, depth, parentPath);
+    for (const child of node.children || []) walk(child, depth + 1, node.fullPath);
+  };
+  for (const node of root.children) walk(node, 0, '');
   return rows.join('');
 }
 
@@ -179,11 +187,14 @@ function _renderSidebarNode(node, currentCatalogId, currentPath) {
   // 当前项：真实分类按 id 匹配；分组按完整路径精确匹配（分组没有 id）
   const isActive = (node.id !== null && node.id !== undefined && String(node.id) === String(currentCatalogId))
     || (currentPath !== null && currentPath !== undefined && String(currentPath) !== '' && node.fullPath === String(currentPath));
+  // 选中项变绿（绿色底框）；分组与普通分类一样
   const activeClass = isActive
-    ? 'bg-secondary-100 text-primary-700 dark:bg-gray-800 dark:text-primary-400'
+    ? 'sidebar-active-green'
     : 'hover:bg-gray-100 text-gray-700 dark:text-gray-300 dark:hover:bg-gray-800';
   const iconClass = isActive ? 'text-primary-600 dark:text-primary-400' : 'text-gray-400 dark:text-gray-500';
   const count = Number(node.count) || 0;
+  // 分组没有 id：把汇总书签数带上，前端点分组筛出 0 封时靠它判断下面是不是真有书签
+  const countAttr = (node.id === null || node.id === undefined) ? ` data-count="${count}"` : '';
 
   const toggleHtml = hasChildren
     ? `<button type="button" class="sidebar-tree-toggle" data-toggle-path="${safeFull}" aria-expanded="true" title="折叠/展开"><svg class="h-3.5 w-3.5"><use href="#icon-chevron-down"/></svg></button>`
@@ -196,7 +207,7 @@ function _renderSidebarNode(node, currentCatalogId, currentPath) {
         <svg class="h-5 w-5 mr-2 flex-shrink-0 ${iconClass}"><use href="#icon-folder"/></svg>
         <span class="sidebar-tree-name truncate">${shortName}</span>
       </a>`
-    : `<a href="?path=${encodeURIComponent(node.fullPath)}" data-path="${safeFull}" data-full-name="${safeFull}" title="${safeFull}" class="sidebar-tree-link sidebar-tree-group flex items-center px-3 py-2 rounded-lg flex-1 min-w-0 transition-colors duration-200 ${activeClass}">
+    : `<a href="?path=${encodeURIComponent(node.fullPath)}" data-path="${safeFull}" data-full-name="${safeFull}" title="${safeFull}"${countAttr} class="sidebar-tree-link sidebar-tree-group flex items-center px-3 py-2 rounded-lg flex-1 min-w-0 transition-colors duration-200 ${activeClass}">
         <svg class="h-5 w-5 mr-2 flex-shrink-0 ${iconClass}"><use href="#icon-folder"/></svg>
         <span class="sidebar-tree-name truncate">${shortName}</span>
       </a>`;

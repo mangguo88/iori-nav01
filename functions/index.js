@@ -224,6 +224,17 @@ export async function onRequest(context) {
   let allSites = sitesResult.results || [];
   if (sitesResult.error) return new Response(`Failed to fetch sites: ${sitesResult.error.message}`, { status: 500 });
 
+  // sites.catelog_name 列基本是空的（历史数据没回填），前端按路径筛选（?path= 分组视图）
+  // 与卡片分类角标都靠它；这里按 catelog_id 从分类表反查完整路径补上，列里有值时不动它。
+  // 不补的话 IORI_SITES 里绝大多数站点的 catelog_name 都是“未分类”，点 VPS类 这类
+  // 分组时站内筛选返回 0 封、卡片区显示“本分类下暂无书签”（服务端 ?path= 按 id 筛所以正常）。
+  for (const site of allSites) {
+    if (site && !site.catelog_name && site.catelog_id !== null && site.catelog_id !== undefined) {
+      const cat = categoryMap.get(site.catelog_id);
+      if (cat && cat.catelog) site.catelog_name = cat.catelog;
+    }
+  }
+
   function resolveCatalogId(catalogValue, options = {}) {
     const value = String(catalogValue || '').trim();
     if (!value || value.toLowerCase() === 'all') return null;
@@ -309,7 +320,7 @@ export async function onRequest(context) {
   // === 9. 生成菜单 HTML ===
   const allLinkActive = !catalogExists && !groupPathExists;
   const allLinkSidebarClass = allLinkActive
-    ? 'bg-secondary-100 text-primary-700 dark:bg-gray-800 dark:text-primary-400'
+    ? 'sidebar-active-green'
     : 'hover:bg-gray-100 text-gray-700 dark:text-gray-300 dark:hover:bg-gray-800';
   const allLinkSidebarIconClass = allLinkActive ? 'text-primary-600 dark:text-primary-400' : 'text-gray-400 dark:text-gray-500';
   // 顶部横向标签栏已取消显示（2026-11-22 用户要求）：不再渲染横向分类导航，
@@ -384,6 +395,19 @@ export async function onRequest(context) {
     }
     return null;
   }
+  // 锚点分组：当前路径本身是分组（没有 id），或它在某个分组路径之下。
+  // 返回离当前路径最近的那个分组节点（没有时返回 null）。
+  // 胶囊栏锚定到它：栏里始终是该分组的直接子文件夹，点进子文件夹后栏还是同一组，
+  // 不换组、不让其他文件夹消失；栏本身因此也不跳动。
+  function findAnchorGroupNode(root, fullPath) {
+    const parts = String(fullPath || '').split('/').map((s) => s.trim()).filter(Boolean);
+    for (let len = parts.length; len >= 1; len--) {
+      const prefix = parts.slice(0, len).join(' / ');
+      const node = findTreeNodeByPath(root, prefix);
+      if (node && (node.id === null || node.id === undefined)) return node;
+    }
+    return null;
+  }
   // 直接子文件夹：真实分类带 id、子分组带 path，胶囊里都能点
   const childCapsuleItems = (node) => (node.children || [])
     .map((c) => ({
@@ -391,6 +415,8 @@ export async function onRequest(context) {
       path: (c.id !== null && c.id !== undefined) ? null : c.fullPath,
       name: shortCategoryName(c.fullPath),
       fullPath: c.fullPath,
+      // 汇总书签数（含子文件夹）：前端点分组筛出 0 封时，靠它判断下面是不是真有书签
+      count: Number(c.count) || 0,
     }))
     .filter((c) => c.id !== null || c.path !== null);
   // 每个分类的胶囊表（供前端站内切换分类时重绘胶囊行；与 SSR 同一套规则）
@@ -419,7 +445,17 @@ export async function onRequest(context) {
   let subCapsuleEntry = null;
   if (catalogExists) {
     const found = findTreeNodeWithParent(sidebarCategoryTree, requestedCatalogId);
-    if (found) subCapsuleEntry = buildCapsuleEntry(found.node, found.parent);
+    if (found) {
+      // 在某个分组之下时，胶囊锚定到该分组：栏里是分组的直接子文件夹（当前项的兄弟们），
+      // 点进子文件夹后栏还是同一组，不换组、不让其他文件夹消失；不在分组之下时走老规则
+      const anchor = findAnchorGroupNode(sidebarCategoryTree, found.node.fullPath);
+      if (anchor) {
+        const items = childCapsuleItems(anchor);
+        if (items.length > 0) subCapsuleEntry = { items, activeId: null };
+      } else {
+        subCapsuleEntry = buildCapsuleEntry(found.node, found.parent);
+      }
+    }
   } else if (groupPathExists) {
     const groupNode = findTreeNodeByPath(sidebarCategoryTree, requestedGroupPath);
     if (groupNode) {
@@ -429,14 +465,17 @@ export async function onRequest(context) {
   }
   const renderCapsules = (entry) => {
     if (!entry || !entry.items || entry.items.length === 0) return '';
+    // 选中态按完整路径判（当前路径本身，或当前路径在该项之下）：分组子项（没有 id）
+    // 也能变蓝/变绿；分组视图下没有哪一项是当前路径本身，所以都不变蓝
+    const currentPath = String(currentCatalogName || '').trim();
     return entry.items.map((item) => {
-      const isActive = entry.activeId !== null && entry.activeId !== undefined && item.id !== null && item.id !== undefined && String(item.id) === String(entry.activeId);
+      const isActive = currentPath !== '' && item.fullPath && (currentPath === item.fullPath || currentPath.startsWith(item.fullPath + ' / '));
       const isGroup = item.id === null || item.id === undefined;
       const href = isGroup
         ? `?path=${encodeURIComponent(item.path)}`
         : `?catalog=${encodeURIComponent(String(item.id))}`;
       const dataAttr = isGroup
-        ? `data-path="${escapeHTML(item.path)}"`
+        ? `data-path="${escapeHTML(item.path)}" data-count="${Number(item.count) || 0}"`
         : `data-id="${item.id}"`;
       return `<a href="${href}" ${dataAttr} data-full-name="${escapeHTML(item.fullPath)}" title="${escapeHTML(item.fullPath)}" class="sub-capsule${isActive ? ' is-active' : ''}">${escapeHTML(item.name)}</a>`;
     }).join('');

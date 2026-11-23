@@ -27,16 +27,22 @@
       if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
     }
 
-    // 打开前定好边。侧栏关着时换边要先让浏览器按新边的藏起位置算一帧
-    // （读一次 offsetWidth 强制重排），再加 open；不然 transform 会从旧边
-    // 的藏起位置一路滑到 0，侧栏会从屏幕中间横扫进来。侧栏开着时换边直接
-    // 改 class（瞬移到另一边，transform 仍是 0，不用等、不闪）。
+    // 打开前定好边。换边时先把过渡关掉再切：不然 left/right 与 transform 会从旧边
+    // 的藏起位置一路过渡到新边（aside 上 transition-all 还会带上 left/right），
+    // 侧栏会从屏幕中间横扫进来——只读一次 offsetWidth 强制重排并不能阻止这段
+    // 过渡，因为重排只是把样式变化提交了，过渡本身照样从旧值跑到新值。
+    // 关掉过渡后，新边的藏起位置瞬间生效（读 offsetWidth 强制重排），再恢复
+    // 过渡，之后加 open 才从新边的边缘滑进来。侧栏开着时换边也是瞬间跳到
+    // 另一边，不经过中间；侧栏关着时换边，滑出动画的起点永远是屏幕边缘。
     function setSidebarSide(side) {
+      if (!sidebar) return;
       if (hoverSide === side) return;
       hoverSide = side;
-      const wasOpen = sidebar?.classList.contains('open');
-      sidebar?.classList.toggle('sidebar-right', side === 'right');
-      if (!wasOpen) void sidebar?.offsetWidth;
+      const prevTransition = sidebar.style.transition;
+      sidebar.style.transition = 'none';
+      sidebar.classList.toggle('sidebar-right', side === 'right');
+      void sidebar.offsetWidth;
+      sidebar.style.transition = prevTransition;
     }
 
     // 悬停滑出：只给侧栏加 open，不带遮罩、不锁 body 滚动，侧栏浮在内容上面

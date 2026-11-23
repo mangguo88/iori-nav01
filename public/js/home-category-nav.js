@@ -266,7 +266,7 @@
       // 当前选中分类的祖先节点强制展开（即使之前收起过），保证高亮可见；
       // 只改 DOM，不改存着的折叠记录
       const activePaths = new Set();
-      const activeLink = sidebar.querySelector('.sidebar-tree-node a.bg-secondary-100');
+      const activeLink = sidebar.querySelector('.sidebar-tree-node a.sidebar-active-green');
       if (activeLink) {
         let node = activeLink.closest('.sidebar-tree-node');
         while (node) {
@@ -681,6 +681,11 @@
     }
 
     // currentPath 为分组完整路径时，胶囊取该分组的直接子文件夹（?path= 表里按 'path:' + 路径存）
+    // 锚点规则：当前路径本身是分组，或它在某个分组之下时，胶囊栏锚定到离它最近的
+    // 那个分组——栏里始终是该分组的直接子文件夹（当前选中项的兄弟们），点进其中
+    // 一个子文件夹后栏里还是这同一组（选中的那个变蓝），不要换成另一组、不要让
+    // 其他文件夹消失；栏本身因此也不跳动。不在任何分组之下时走老规则（有子文件夹
+    // 显示子文件夹，是叶子则显示兄弟文件夹、当前变蓝）。
     function updateCapsules(catalogId, currentPath) {
       const wrap = document.getElementById('subCapsules');
       if (!wrap) return;
@@ -688,18 +693,30 @@
       // 否则从无胶囊的分类切到有胶囊的分类时，胶囊会被藏在 hidden 的外层里看不见。
       const row = wrap.closest('.home-stats-row');
       const map = window.IORI_CAPSULES || {};
-      const entry = (currentPath ? map['path:' + currentPath] : (!catalogId ? null : map[String(catalogId)])) || null;
+      const path = String(currentPath || '').trim();
+      let entry = null;
+      if (path) {
+        // 从最长前缀往短找离当前路径最近的分组（?path= 表里按 'path:' + 路径存）
+        const parts = path.split('/').map((s) => s.trim()).filter(Boolean);
+        for (let len = parts.length; len >= 1; len--) {
+          const prefix = parts.slice(0, len).join(' / ');
+          if (map['path:' + prefix]) { entry = map['path:' + prefix]; break; }
+        }
+      }
+      if (!entry && catalogId) entry = map[String(catalogId)] || null;
       if (!entry || !entry.items || entry.items.length === 0) {
         wrap.classList.add('hidden');
         wrap.innerHTML = '';
         if (row) row.classList.add('hidden');
         return;
       }
+      // 选中态按完整路径判（当前路径本身，或当前路径在该项之下）：分组子项（没有 id）
+      // 也能变蓝；分组视图下没有哪一项是当前路径本身，所以都不变蓝
       wrap.innerHTML = entry.items.map((item) => {
-        const isActive = entry.activeId !== null && entry.activeId !== undefined && item.id !== null && item.id !== undefined && String(item.id) === String(entry.activeId);
+        const isActive = path !== '' && item.fullPath && (path === item.fullPath || path.startsWith(item.fullPath + ' / '));
         const isGroup = item.id === null || item.id === undefined;
         const href = isGroup ? `?path=${encodeURIComponent(item.path)}` : `?catalog=${encodeURIComponent(String(item.id))}`;
-        const dataAttr = isGroup ? `data-path="${escapeCapsuleHtml(item.path)}"` : `data-id="${item.id}"`;
+        const dataAttr = isGroup ? `data-path="${escapeCapsuleHtml(item.path)}" data-count="${Number(item.count) || 0}"` : `data-id="${item.id}"`;
         return `<a href="${href}" ${dataAttr} data-full-name="${escapeCapsuleHtml(item.fullPath || item.name)}" title="${escapeCapsuleHtml(item.fullPath || item.name)}" class="sub-capsule${isActive ? ' is-active' : ''}">${escapeCapsuleHtml(item.name)}</a>`;
       }).join('');
       wrap.classList.remove('hidden');
@@ -753,10 +770,14 @@
     }
 
     // 站内切到某一分组：筛出该路径下全部书签（含各级子文件夹），其余与分类视图一致
-    function applyGroupView(groupPath, groupName) {
+    // 返回 true（已渲染）/ false（缺数据，调用方整页跳转）/ 'server'（站内筛出 0 封、
+    // 但该分组汇总数大于 0，说明前端数据不全，调用方整页跳到 ?path= 让服务端渲染；
+    // 汇总数为 0 的分组才是真空，正常显示空状态）
+    function applyGroupView(groupPath, groupName, groupCount) {
       const sitesGrid = document.getElementById('sitesGrid');
       if (!sitesGrid || !window.IORI_SITES || !cardController) return false;
       const filteredSites = cardController.getSitesForPath(groupPath);
+      if (filteredSites.length === 0 && Number(groupCount || 0) > 0) return 'server';
       cardController.setActivePath(groupPath);
       cardController.renderSites(filteredSites);
       Home.updateHeading?.(null, groupName || null, filteredSites.length);
@@ -797,11 +818,13 @@
         if (pathLink) {
           const groupPath = link.getAttribute('data-path') || '';
           const groupName = link.textContent.trim();
+          const groupCount = Number(link.getAttribute('data-count') || 0);
           if (!groupPath) {
             window.location.href = href;
             return;
           }
-          if (!applyGroupView(groupPath, groupName)) {
+          const applied = applyGroupView(groupPath, groupName, groupCount);
+          if (applied !== true) {
             window.location.href = href;
             return;
           }
@@ -842,7 +865,8 @@
       if (path) {
         const link = findSidebarLinkByPath(path);
         const groupName = link ? link.textContent.trim() : shortNameFromPath(path);
-        if (!applyGroupView(path, groupName)) window.location.reload();
+        const groupCount = link ? Number(link.getAttribute('data-count') || 0) : 0;
+        if (applyGroupView(path, groupName, groupCount) !== true) window.location.reload();
         return;
       }
       if (catalog && catalog.toLowerCase() !== 'all') {
@@ -936,16 +960,18 @@
           const allActive = !catalogId && !currentPath && !linkId && !linkPath;
           const isActive = Boolean(allActive || idActive || pathActive);
 
+          // 选中项变绿（绿色底框），替代原来的只变蓝字；分组（?path=）与普通分类
+          // （?catalog=）选中时都变绿。顶栏导航的蓝色选中态不动，只改侧栏这一处。
           if (isActive) {
-            link.classList.remove('hover:bg-gray-100', 'text-gray-700', 'dark:hover:bg-gray-800', 'dark:text-gray-300');
-            link.classList.add('bg-secondary-100', 'text-primary-700', 'dark:bg-gray-800', 'dark:text-primary-400');
+            link.classList.remove('hover:bg-gray-100', 'text-gray-700', 'dark:hover:bg-gray-800', 'dark:text-gray-300', 'bg-secondary-100', 'text-primary-700', 'dark:bg-gray-800', 'dark:text-primary-400');
+            link.classList.add('sidebar-active-green');
 
             if (svg) {
               svg.classList.remove('text-gray-400', 'dark:text-gray-500');
               svg.classList.add('text-primary-600', 'dark:text-primary-400');
             }
           } else {
-            link.classList.remove('bg-secondary-100', 'text-primary-700', 'dark:bg-gray-800', 'dark:text-primary-400');
+            link.classList.remove('bg-secondary-100', 'text-primary-700', 'dark:bg-gray-800', 'dark:text-primary-400', 'sidebar-active-green');
             link.classList.add('hover:bg-gray-100', 'text-gray-700', 'dark:text-gray-300', 'dark:hover:bg-gray-800');
 
             if (svg) {
@@ -954,6 +980,21 @@
             }
           }
         });
+
+        // 小舒式深层行：选中的分组展开，把它全部子文件夹列出来（缩进一级排在它下面），
+        // 其他文件夹照常显示；点进子文件夹后，选中项的兄弟们（父级是当前路径祖先的
+        // 行）继续显示，侧栏不重排、不藏其他文件夹。顶级与一级行始终显示。
+        const botabWrap = document.getElementById('sidebarBotabWrap');
+        if (botabWrap) {
+          const rows = botabWrap.querySelectorAll('.sidebar-botab-row[data-depth]');
+          rows.forEach(row => {
+            const depth = Number(row.getAttribute('data-depth') || 0);
+            if (depth <= 1) { row.classList.remove('hidden'); return; }
+            const parentPath = row.getAttribute('data-parent-path') || '';
+            const show = !!currentPath && parentPath !== '' && (currentPath === parentPath || currentPath.startsWith(parentPath + ' / '));
+            row.classList.toggle('hidden', !show);
+          });
+        }
       }
 
       // 侧栏树：当前分类/分组的祖先节点展开，保证高亮项可见

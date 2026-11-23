@@ -1990,7 +1990,7 @@ html[data-sidebar-bg="dark"] #sidebar { background-color: #1f2937 !important; bo
 html[data-sidebar-bg="dark"] #sidebar .sidebar-tree-count { background-color: #374151; color: #d1d5db; }
 /* 底色档自动配字：浅底深字、深底浅字（字体颜色=默认时生效；手动选了字体颜色后由
    下面的 data-sidebar-font-color 规则接管）。导航文字自带 Tailwind 文字色，这里用
-   --sidebar-fg 变量 + 带 #sidebar 的选择器覆盖；当前选中项除外，保留蓝色标识。 */
+   --sidebar-fg 变量 + 带 #sidebar 的选择器覆盖；当前选中项除外，保留绿色标识。 */
 html[data-sidebar-bg="white"] #sidebar,
 html[data-sidebar-bg="gray"] #sidebar { --sidebar-fg: #374151; }
 html[data-sidebar-bg="dark"] #sidebar { --sidebar-fg: #f3f4f6; }
@@ -2002,12 +2002,12 @@ html[data-sidebar-font-color="white"] #sidebar { --sidebar-fg: #ffffff; }
 /* 字体颜色生效处：只有上面两组属性之一存在时才匹配（否则走 Tailwind 默认色）；
    :is() 取其中最具体的参数计优先级，高于 Tailwind 的 dark 变体。 */
 html:is([data-sidebar-bg="white"], [data-sidebar-bg="gray"], [data-sidebar-bg="dark"], [data-sidebar-font-color]) #sidebar :is(
-  .sidebar-tree-link:not(.bg-secondary-100),
-  .sidebar-botab-link:not(.bg-secondary-100),
-  .sidebar-tree-group:not(.bg-secondary-100),
-  .sidebar-botab-group:not(.bg-secondary-100),
+  .sidebar-tree-link:not(.bg-secondary-100):not(.sidebar-active-green),
+  .sidebar-botab-link:not(.bg-secondary-100):not(.sidebar-active-green),
+  .sidebar-tree-group:not(.bg-secondary-100):not(.sidebar-active-green),
+  .sidebar-botab-group:not(.bg-secondary-100):not(.sidebar-active-green),
   .sidebar-top-row button,
-  .sidebar-top-row a:not(.bg-secondary-100),
+  .sidebar-top-row a:not(.bg-secondary-100):not(.sidebar-active-green),
   h3,
   #sidebarSettingsBtn,
   a[href="/admin"]
@@ -2731,7 +2731,7 @@ html[data-dock-font-color="blue"] .root-dock-name { color: #2563eb; }
 #sidebar.sidebar-mode-botab #sidebarExpandCollapseWrap {
   display: none;
 }
-/* 小舒模式：回到顶部 / 全部收藏两行也不要图标与数量，当前项只变蓝、不加背景 */
+/* 小舒模式：回到顶部 / 全部收藏两行也不要图标与数量，当前项变绿（绿色底框）、加背景 */
 #sidebar.sidebar-mode-botab .sidebar-top-row svg {
   display: none;
 }
@@ -2750,6 +2750,36 @@ html[data-dock-font-color="blue"] .root-dock-name { color: #2563eb; }
 .dark #sidebar.sidebar-mode-botab .sidebar-botab-link.bg-secondary-100 {
   background-color: transparent;
 }
+/* 侧栏当前选中项：绿色底框（浅绿底 + 绿描边 + 绿字），替代原来的只变蓝字。
+   小舒式与树形都生效；分组（?path=）与普通分类（?catalog=）选中时都变绿。
+   background-color 与 color 用 !important：上面那条顶行 :hover 背景透明规则
+   与 --sidebar-fg 字体色规则的优先级都比它高，不加会被盖掉。 */
+#sidebar .sidebar-botab-link.sidebar-active-green,
+#sidebar .sidebar-tree-link.sidebar-active-green {
+  background-color: #dcfce7 !important;
+  -webkit-box-shadow: inset 0 0 0 1px #86efac;
+  box-shadow: inset 0 0 0 1px #86efac;
+  color: #166534 !important;
+}
+#sidebar .sidebar-botab-link.sidebar-active-green svg,
+#sidebar .sidebar-tree-link.sidebar-active-green svg {
+  color: #16a34a;
+}
+.dark #sidebar .sidebar-botab-link.sidebar-active-green,
+.dark #sidebar .sidebar-tree-link.sidebar-active-green {
+  background-color: rgba(20, 83, 45, 0.45) !important;
+  -webkit-box-shadow: inset 0 0 0 1px #4ade80;
+  box-shadow: inset 0 0 0 1px #4ade80;
+  color: #bbf7d0 !important;
+}
+.dark #sidebar .sidebar-botab-link.sidebar-active-green svg,
+.dark #sidebar .sidebar-tree-link.sidebar-active-green svg {
+  color: #4ade80;
+}
+/* 小舒式深层行（选中分组的子文件夹）：缩进一级排在父级下面 */
+#sidebarBotabWrap .sidebar-botab-row[data-depth="2"] .sidebar-botab-link { padding-left: 1.75rem; }
+#sidebarBotabWrap .sidebar-botab-row[data-depth="3"] .sidebar-botab-link { padding-left: 2.5rem; }
+#sidebarBotabWrap .sidebar-botab-row[data-depth="4"] .sidebar-botab-link { padding-left: 3.25rem; }
 .sidebar-mode-btn {
   color: #6b7280;
 }
