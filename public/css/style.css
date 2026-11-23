@@ -2851,11 +2851,11 @@ html[data-dock-font-color="blue"] .root-dock-name { color: #2563eb; }
   line-height: 1.125rem;
   padding: 0.3125rem 0.875rem;
 }
-/* 孙文件夹：跟在父文件夹后面，比子文件夹再小一号，文字“父 - 子” */
+/* 孙文件夹：跟在父文件夹后面，只显示自己短名，比子文件夹再小一号 */
 .sub-capsule-grandchild {
   font-size: 0.7rem;
   line-height: 0.875rem;
-  padding: 0.25rem 0.75rem;
+  padding: 0.125rem 0.5rem;
   opacity: 0.92;
 }
 .dark .sub-capsule {
