@@ -680,7 +680,7 @@ export async function onRequest(context) {
     <button id="searchToggleBtn" type="button" class="top-action-icon search-action-icon" title="隐藏搜索栏" aria-label="显示或隐藏搜索栏" aria-pressed="false">
       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
     </button>`;
-  const topRightActionsHtml = `<div class="fixed top-4 right-4 z-50 flex items-center gap-3">${themeIconHtml}${searchIconHtml}${adminIconHtml}</div>`;
+  const topRightActionsHtml = `<div class="top-right-actions fixed top-4 right-4 z-50 flex items-center gap-3">${themeIconHtml}${searchIconHtml}${adminIconHtml}</div>`;
   const leftTopActionHtml = `
     <div id="sidebarToggleWrap" class="fixed top-4 left-4 z-50 ${mobileToggleVisibilityClass}">
       <button id="sidebarToggle" class="p-2 rounded-lg bg-white dark:bg-gray-800 shadow-md hover:bg-gray-100 dark:hover:bg-gray-700">

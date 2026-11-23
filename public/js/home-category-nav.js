@@ -503,7 +503,7 @@
       applySidebarFontSize(getSidebarFontSize());
     }
 
-    // ---- 图标栏设置：对齐 + 图标大小 + 间距（齿轮浮层，记 localStorage，默认居中）----
+    // ---- 图标栏设置：对齐 + 图标大小 + 间距（齿轮浮层，记 localStorage，默认居左）----
     const DOCK_ALIGN_KEY = 'iori_dock_align_v1';
     const DOCK_SIZE_KEY = 'iori_dock_size_v1';
     const DOCK_GAP_KEY = 'iori_dock_gap_v1';
@@ -532,8 +532,8 @@
     function getDockAlign() {
       try {
         const v = localStorage.getItem(DOCK_ALIGN_KEY);
-        return DOCK_ALIGN_VALUES.indexOf(v) >= 0 ? v : 'center';
-      } catch (e) { return 'center'; }
+        return DOCK_ALIGN_VALUES.indexOf(v) >= 0 ? v : 'left';
+      } catch (e) { return 'left'; }
     }
 
     function getDockSize() {

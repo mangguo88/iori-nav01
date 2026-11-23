@@ -17,7 +17,7 @@
   <meta name="twitter:description" content="{{SITE_DESCRIPTION}}">
   <meta name="twitter:image" content="{{OG_IMAGE_URL}}">
   <link rel="icon" href="/favicon.svg?v=148aafdf" type="image/svg+xml">
-  <link rel="stylesheet" href="/css/style.css?v=bad823c02da47fa322b0f13535223a90">
+  <link rel="stylesheet" href="/css/style.css?v=df432c3268154b982f88716f291fe443">
   <script>
     // Init Theme ASAP to prevent FOUC
     if (localStorage.getItem('theme') === 'dark') {
@@ -34,7 +34,7 @@
       if (['gray', 'blue', 'white'].indexOf(_sbfc) >= 0) document.documentElement.setAttribute('data-sidebar-font-color', _sbfc);
       var _sbfs = parseInt(localStorage.getItem('iori_sidebar_font_size_v1') || '14', 10);
       if (_sbfs >= 13 && _sbfs <= 18) document.documentElement.style.setProperty('--sidebar-font-size', _sbfs + 'px');
-      var _dka = localStorage.getItem('iori_dock_align_v1') || 'center';
+      var _dka = localStorage.getItem('iori_dock_align_v1') || 'left';
       if (['left', 'right'].indexOf(_dka) >= 0) document.documentElement.setAttribute('data-dock-align', _dka);
       var _dks = parseInt(localStorage.getItem('iori_dock_size_v1') || '64', 10);
       if (_dks >= 48 && _dks <= 80) document.documentElement.style.setProperty('--dock-icon-size', _dks + 'px');
@@ -297,7 +297,7 @@
   <script src="/js/home-cards.js?v=12a4110e"></script>
   <script src="/js/home-submit.js?v=5457a66d"></script>
   <script src="/js/home-search.js?v=5eadfb7e"></script>
-  <script src="/js/home-category-nav.js?v=33a6332431f8aec379730d335698fe69"></script>
+  <script src="/js/home-category-nav.js?v=62970b94d0b4dedb7c36bda9c833d4a8"></script>
   <script src="/js/main.js?v=193ce81f"></script>
 </body>
 </html>

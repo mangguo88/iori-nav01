@@ -398,6 +398,11 @@ header {
     transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
+/* 右上角按钮组（主题切换/搜索开关/后台）：z 必须高于冻结顶栏（60）与侧栏
+   （70），否则顶栏不透明的壁纸背景会把它盖住，图标看不见也点不到；
+   侧栏从右边滑出来时它也浮在上面，始终能点到。 */
+div.top-right-actions { z-index: 80; }
+
 .top-action-icon {
   display: inline-flex;
   align-items: center;
@@ -2550,6 +2555,7 @@ body.theme-landscape .site-card.style-3:not(.frosted-glass-effect) .site-title {
    里的元素，不再钉住——往下滚时跟着内容一起向上滑、从固定顶栏下面滑过被挡住。
    栏宽 max-content、margin auto 居中。 */
 .root-dock {
+  position: relative;
   display: flex;
   align-items: flex-start;
   width: max-content;
