@@ -1956,6 +1956,12 @@ body .search-engine-option.active {
      （JS 加 wide-hover-open class）；主区不动，侧栏浮在内容上面；移开后
      class 一摘就收回去，checkbox 本身的状态不动，开关照旧。 */
   #sidebar-toggle:checked ~ #sidebar.wide-hover-open { margin-left: 0; }
+  /* 宽屏右边缘滑出：侧栏改锚到右边（盖掉模板的 left-0），从右边缘滑进来，
+     边框换到内侧；收回时也回右边（下面那条 :not 规则）。注意收回靠
+     margin-right：右锚定时 border-box 的位置由 right + margin-right 定，
+     只改 margin-left 的话 left 的计算值会变、框却钉在原地不动。 */
+  #sidebar-toggle:checked ~ #sidebar.wide-hover-open.sidebar-right { left: auto; right: 0; margin-right: 0; border-right-width: 0; border-left-width: 1px; }
+  #sidebar-toggle:checked ~ #sidebar.sidebar-right:not(.wide-hover-open) { left: auto; right: 0; margin-right: calc(-1 * var(--sidebar-w, 256px)); }
 }
 
 /* ===== 侧栏宽度 / 底色（侧栏设置，存在 localStorage；JS 在 <head> 里先恢复）===== */

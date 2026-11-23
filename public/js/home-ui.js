@@ -77,9 +77,9 @@
     }
 
     // ---- 宽屏贴边滑出：侧栏被桌面开关（#sidebar-toggle）藏起时，鼠标贴
-    // 左边缘也把它滑出来，移开 200ms 后自动收回；开关本身的状态不动，
-    // 只是临时盖掉藏起的 margin（见 style.css 的 wide-hover-open 规则），
-    // 主区不动，侧栏浮在内容上面。侧栏常显时不触发。 ----
+    // 左/右边缘也把它滑出来（从贴的那边），移开 200ms 后自动收回；开关本
+    // 身的状态不动，只是临时盖掉藏起的 margin（见 style.css 的
+    // wide-hover-open 规则），主区不动，侧栏浮在内容上面。侧栏常显时不触发。 ----
     let wideHoverOpen = false; // 当前是否由宽屏贴边悬停打开
     let wideHideTimer = null;
 
@@ -93,10 +93,12 @@
       sidebar?.classList.remove('wide-hover-open');
     }
 
-    function showWideHover() {
+    function showWideHover(side) {
       if (!finePointer.matches || drawerQuery.matches) return;
       if (!sidebarToggleCheckbox?.checked) return;
       clearWideHideTimer();
+      // 先定边（换边时过渡关掉再切，不会从屏幕中间横扫过去，见 setSidebarSide）
+      setSidebarSide(side);
       if (wideHoverOpen) return;
       wideHoverOpen = true;
       if (sidebar) sidebar.scrollTop = 0;
@@ -154,11 +156,12 @@
         else hideSidebarHover();
         return;
       }
-      // 宽屏：侧栏被桌面开关藏起时，鼠标贴左边缘也滑出来，移开自动收回；
+      // 宽屏：侧栏被桌面开关藏起时，鼠标贴左/右边缘都滑出来（从贴的那边），移开自动收回；
       // 侧栏常显时什么都不做，开关本身照旧。
       if (!finePointer.matches || drawerQuery.matches) return;
-      if (x <= EDGE_ZONE) showWideHover();
-      else if (overSidebar) showWideHover();
+      if (x <= EDGE_ZONE) showWideHover('left');
+      else if (x >= window.innerWidth - EDGE_ZONE) showWideHover('right');
+      else if (overSidebar) showWideHover(hoverSide || 'left');
       else hideWideHover();
     });
 
