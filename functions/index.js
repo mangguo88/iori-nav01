@@ -409,8 +409,8 @@ export async function onRequest(context) {
     return null;
   }
   // 直接子文件夹：真实分类带 id、子分组带 path，胶囊里都能点；
-  // 每项再带一层孙文件夹（children）：胶囊区在该子文件夹后面以“父 - 子”
-  // 小一号显示（只展开一层，再深的不用）
+  // 每项再带一层孙文件夹（children）：胶囊区在该子文件夹后面只显示孙文件夹
+  // 自己的短名、小一号显示（只展开一层，再深的不用）
   const childCapsuleItems = (node) => (node.children || [])
     .map((c) => ({
       id: (c.id !== null && c.id !== undefined) ? c.id : null,
@@ -487,13 +487,14 @@ export async function onRequest(context) {
   }
   // 胶囊区展示方式（服务端首屏与站内切换共用一套规则）：
   // 胶囊栏永远是固定的一组：[归属文件夹 owner] + [它的直接子文件夹按原顺序，
-  // 每个后面跟它的孙文件夹“父 - 子”]，顺序在任何视图下都不变。
+  // 每个后面跟它的孙文件夹（只显示短名）]，顺序在任何视图下都不变。
   // owner 就是栏里这组子文件夹的父级：看 VPS类 分组时是 VPS类；看它的子文件夹
   // （游戏机、vps服务器、域名…）时还是 VPS类，排第一位、不消失；看 收藏夹栏
   // 时是 收藏夹栏；看没有分组祖先的叶子分类时是它的父分类。
   // 当前文件夹不再跳第一位、不再单独放大：它留在原位置，只变蓝（is-active）。
   // 大小按相对 owner 的深度依次递减：owner 正常大小，直接子文件夹小一号，
-  // 孙文件夹再小一号。文字“父 - 子”（例如“域名 - xyz域名”），只展开一层孙文件夹。
+  // 孙文件夹再小一号。文字只显示孙文件夹自己的短名（例如只显示 xyz域名，
+  // 不加“域名 - ”前缀），只展开一层孙文件夹。
   const renderCapsules = (entry) => {
     if (!entry || !entry.items || entry.items.length === 0) return '';
     // 选中态按完整路径精确匹配；当前路径比栏里任何一项都深时（例如比孙文件夹
@@ -528,7 +529,7 @@ export async function onRequest(context) {
         : `data-id="${item.id}"`;
       return `<a href="${href}" ${dataAttr} data-full-name="${escapeHTML(item.fullPath)}" title="${escapeHTML(item.fullPath)}" class="sub-capsule${extraClass ? ' ' + extraClass : ''}${isActive ? ' is-active' : ''}">${escapeHTML(item.name)}</a>`;
     };
-    // 孙文件夹药丸：比子文件夹再小一号，文字“父 - 子”；当前路径本身就是它时
+    // 孙文件夹药丸：比子文件夹再小一号，只显示孙文件夹自己的短名；当前路径本身就是它时
     // 留在原位变蓝，不跳过
     const grandchildLink = (parent, g) => {
       const isActive = isActivePath(g.fullPath);
@@ -539,7 +540,7 @@ export async function onRequest(context) {
       const dataAttr = isGroup
         ? `data-path="${escapeHTML(g.path)}" data-count="${Number(g.count) || 0}"`
         : `data-id="${g.id}"`;
-      return `<a href="${href}" ${dataAttr} data-full-name="${escapeHTML(g.fullPath)}" title="${escapeHTML(g.fullPath)}" class="sub-capsule sub-capsule-grandchild${isActive ? ' is-active' : ''}">${escapeHTML(parent.name + ' - ' + g.name)}</a>`;
+      return `<a href="${href}" ${dataAttr} data-full-name="${escapeHTML(g.fullPath)}" title="${escapeHTML(g.fullPath)}" class="sub-capsule sub-capsule-grandchild${isActive ? ' is-active' : ''}">${escapeHTML(g.name)}</a>`;
     };
     let html = '';
     if (entry.owner && entry.owner.fullPath) html += capsuleLink(entry.owner, 'sub-capsule-current');

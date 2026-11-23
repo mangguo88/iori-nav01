@@ -712,7 +712,7 @@
       }
       // 胶囊区展示方式（与服务端首屏共用一套规则）：
       // 胶囊栏永远是固定的一组：[归属文件夹 owner] + [它的直接子文件夹按原顺序，
-      // 每个后面跟它的孙文件夹“父 - 子”]，顺序在任何视图下都不变；当前文件夹
+      // 每个后面跟它的孙文件夹（只显示短名）]，顺序在任何视图下都不变；当前文件夹
       // 不再跳第一位、不再单独放大，留在原位置变蓝（is-active）。
       // 选中态按完整路径精确匹配；当前路径比栏里任何一项都深时，变蓝离它最近的
       // 祖先那一项，保证总有一项是蓝的。
@@ -775,14 +775,14 @@
         const dataAttr = isGroup ? `data-path="${escapeCapsuleHtml(item.path)}" data-count="${Number(item.count) || 0}"` : `data-id="${item.id}"`;
         return `<a href="${href}" ${dataAttr} data-full-name="${escapeCapsuleHtml(item.fullPath || item.name)}" title="${escapeCapsuleHtml(item.fullPath || item.name)}" class="sub-capsule${extraClass ? ' ' + extraClass : ''}${isActive ? ' is-active' : ''}">${escapeCapsuleHtml(item.name)}</a>`;
       };
-      // 孙文件夹药丸：比子文件夹再小一号，文字“父 - 子”；当前路径本身就是它时
+      // 孙文件夹药丸：比子文件夹再小一号，只显示孙文件夹自己的短名；当前路径本身就是它时
       // 留在原位变蓝，不跳过
       const grandchildLink = (parent, g) => {
         const isActive = isActivePath(g.fullPath);
         const isGroup = g.id === null || g.id === undefined;
         const href = isGroup ? `?path=${encodeURIComponent(g.path)}` : `?catalog=${encodeURIComponent(String(g.id))}`;
         const dataAttr = isGroup ? `data-path="${escapeCapsuleHtml(g.path)}" data-count="${Number(g.count) || 0}"` : `data-id="${g.id}"`;
-        return `<a href="${href}" ${dataAttr} data-full-name="${escapeCapsuleHtml(g.fullPath || g.name)}" title="${escapeCapsuleHtml(g.fullPath || g.name)}" class="sub-capsule sub-capsule-grandchild${isActive ? ' is-active' : ''}">${escapeCapsuleHtml(parent.name + ' - ' + g.name)}</a>`;
+        return `<a href="${href}" ${dataAttr} data-full-name="${escapeCapsuleHtml(g.fullPath || g.name)}" title="${escapeCapsuleHtml(g.fullPath || g.name)}" class="sub-capsule sub-capsule-grandchild${isActive ? ' is-active' : ''}">${escapeCapsuleHtml(g.name)}</a>`;
       };
       let html = '';
       if (owner && owner.fullPath) html += capsuleLink(owner, 'sub-capsule-current');
