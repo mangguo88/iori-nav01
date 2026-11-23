@@ -430,14 +430,25 @@ export async function onRequest(context) {
         .filter((g) => g.id !== null || g.path !== null),
     }))
     .filter((c) => c.id !== null || c.path !== null);
+  // 胶囊栏的归属文件夹（owner）：栏里这组子文件夹的父级——有子文件夹的节点本身
+  // 就是 owner，叶子分类的 owner 是它父级；owner 药丸排在栏的第一位，正常大小，
+  // 点进子文件夹后 owner 不消失、顺序固定不变。父级是虚拟根（fullPath 为空）时
+  // 没有可显示的父文件夹，owner 就用当前节点本身。
+  const ownerCapsuleItem = (node) => ({
+    id: (node.id !== null && node.id !== undefined) ? node.id : null,
+    path: (node.id !== null && node.id !== undefined) ? null : node.fullPath,
+    name: shortCategoryName(node.fullPath),
+    fullPath: node.fullPath,
+    count: Number(node.count) || 0,
+  });
   // 每个分类的胶囊表（供前端站内切换分类时重绘胶囊行；与 SSR 同一套规则）
   const capsuleMap = {};
   const buildCapsuleEntry = (node, parent) => {
     const ownChildren = childCapsuleItems(node);
-    if (ownChildren.length > 0) return { items: ownChildren, activeId: null };
+    if (ownChildren.length > 0) return { items: ownChildren, owner: ownerCapsuleItem(node), activeId: null };
     if (parent) {
       const siblings = childCapsuleItems(parent);
-      if (siblings.length > 0) return { items: siblings, activeId: node.id };
+      if (siblings.length > 0) return { items: siblings, owner: ownerCapsuleItem(parent.fullPath ? parent : node), activeId: node.id };
     }
     return null;
   };
@@ -448,7 +459,7 @@ export async function onRequest(context) {
     } else if (node.fullPath) {
       // 没有 id 的分组节点：胶囊是它的直接子文件夹，供 ?path= 分组视图用
       const items = childCapsuleItems(node);
-      if (items.length > 0) capsuleMap['path:' + node.fullPath] = { items, activeId: null };
+      if (items.length > 0) capsuleMap['path:' + node.fullPath] = { items, owner: ownerCapsuleItem(node), activeId: null };
     }
     for (const child of node.children || []) collectCapsuleEntries(child, node);
   };
@@ -462,7 +473,7 @@ export async function onRequest(context) {
       const anchor = findAnchorGroupNode(sidebarCategoryTree, found.node.fullPath);
       if (anchor) {
         const items = childCapsuleItems(anchor);
-        if (items.length > 0) subCapsuleEntry = { items, activeId: null };
+        if (items.length > 0) subCapsuleEntry = { items, owner: ownerCapsuleItem(anchor), activeId: null };
       } else {
         subCapsuleEntry = buildCapsuleEntry(found.node, found.parent);
       }
@@ -471,24 +482,43 @@ export async function onRequest(context) {
     const groupNode = findTreeNodeByPath(sidebarCategoryTree, requestedGroupPath);
     if (groupNode) {
       const items = childCapsuleItems(groupNode);
-      if (items.length > 0) subCapsuleEntry = { items, activeId: null };
+      if (items.length > 0) subCapsuleEntry = { items, owner: ownerCapsuleItem(groupNode), activeId: null };
     }
   }
   // 胶囊区展示方式（服务端首屏与站内切换共用一套规则）：
-  // ① 第一位是当前文件夹本身（大一号药丸，点它回到本级视图）；
-  // ② 后面是锚定分组的直接子文件夹（现有规则：点进子文件夹后栏里还是同一组）；
-  // 当前文件夹若在子项列表里（它是锚定分组的孩子），它已经是第一位的大药丸，
-  // 列表里跳过它、不重复出现；它的孙文件夹紧跟在大药丸后面。
-  // ③ 有子文件夹的子文件夹，它的孙文件夹紧跟在它后面、比上一级小一号，
-  // 文字写成“父 - 子”（例如“域名 - xyz域名”），只展开一层孙文件夹。
+  // 胶囊栏永远是固定的一组：[归属文件夹 owner] + [它的直接子文件夹按原顺序，
+  // 每个后面跟它的孙文件夹“父 - 子”]，顺序在任何视图下都不变。
+  // owner 就是栏里这组子文件夹的父级：看 VPS类 分组时是 VPS类；看它的子文件夹
+  // （游戏机、vps服务器、域名…）时还是 VPS类，排第一位、不消失；看 收藏夹栏
+  // 时是 收藏夹栏；看没有分组祖先的叶子分类时是它的父分类。
+  // 当前文件夹不再跳第一位、不再单独放大：它留在原位置，只变蓝（is-active）。
+  // 大小按相对 owner 的深度依次递减：owner 正常大小，直接子文件夹小一号，
+  // 孙文件夹再小一号。文字“父 - 子”（例如“域名 - xyz域名”），只展开一层孙文件夹。
   const renderCapsules = (entry) => {
     if (!entry || !entry.items || entry.items.length === 0) return '';
-    // 选中态按完整路径判（当前路径本身，或当前路径在该项之下）：分组子项（没有 id）
-    // 也能变蓝/变绿
+    // 选中态按完整路径精确匹配；当前路径比栏里任何一项都深时（例如比孙文件夹
+    // 还深），变蓝离它最近的祖先那一项，保证总有一项是蓝的。
     const currentPath = String(currentCatalogName || '').trim();
-    // 当前文件夹本身的第一位大药丸（分类走 ?catalog=，分组走 ?path=）
+    const allPaths = [];
+    if (entry.owner && entry.owner.fullPath) allPaths.push(entry.owner.fullPath);
+    for (const item of entry.items) {
+      if (item.fullPath) allPaths.push(item.fullPath);
+      for (const g of (item.children || [])) if (g.fullPath) allPaths.push(g.fullPath);
+    }
+    let activeFullPath = '';
+    if (currentPath && allPaths.indexOf(currentPath) >= 0) {
+      activeFullPath = currentPath;
+    } else if (currentPath) {
+      let longest = '';
+      for (const p of allPaths) {
+        if (currentPath.startsWith(p + ' / ') && p.length > longest.length) longest = p;
+      }
+      activeFullPath = longest;
+    }
+    const isActivePath = (fullPath) => activeFullPath !== '' && fullPath === activeFullPath;
+    // owner 药丸（正常大小，sub-capsule-current；分类走 ?catalog=，分组走 ?path=）
     const capsuleLink = (item, extraClass) => {
-      const isActive = currentPath !== '' && item.fullPath && (currentPath === item.fullPath || currentPath.startsWith(item.fullPath + ' / '));
+      const isActive = isActivePath(item.fullPath);
       const isGroup = item.id === null || item.id === undefined;
       const href = isGroup
         ? `?path=${encodeURIComponent(item.path)}`
@@ -498,11 +528,10 @@ export async function onRequest(context) {
         : `data-id="${item.id}"`;
       return `<a href="${href}" ${dataAttr} data-full-name="${escapeHTML(item.fullPath)}" title="${escapeHTML(item.fullPath)}" class="sub-capsule${extraClass ? ' ' + extraClass : ''}${isActive ? ' is-active' : ''}">${escapeHTML(item.name)}</a>`;
     };
-    // 孙文件夹药丸：比上一级小一号，文字“父 - 子”；当前路径本身就是它时跳过
-    // （它已经是第一位的大药丸），当前路径在它之下时照常变蓝
+    // 孙文件夹药丸：比子文件夹再小一号，文字“父 - 子”；当前路径本身就是它时
+    // 留在原位变蓝，不跳过
     const grandchildLink = (parent, g) => {
-      if (currentPath && g.fullPath === currentPath) return '';
-      const isActive = currentPath !== '' && g.fullPath && (currentPath === g.fullPath || currentPath.startsWith(g.fullPath + ' / '));
+      const isActive = isActivePath(g.fullPath);
       const isGroup = g.id === null || g.id === undefined;
       const href = isGroup
         ? `?path=${encodeURIComponent(g.path)}`
@@ -513,30 +542,9 @@ export async function onRequest(context) {
       return `<a href="${href}" ${dataAttr} data-full-name="${escapeHTML(g.fullPath)}" title="${escapeHTML(g.fullPath)}" class="sub-capsule sub-capsule-grandchild${isActive ? ' is-active' : ''}">${escapeHTML(parent.name + ' - ' + g.name)}</a>`;
     };
     let html = '';
-    if (currentPath) {
-      const isCurrentGroup = !catalogExists;
-      let currentCount = 0;
-      if (isCurrentGroup) {
-        const currentNode = findTreeNodeByPath(sidebarCategoryTree, currentPath);
-        currentCount = currentNode ? (Number(currentNode.count) || 0) : 0;
-      }
-      const currentItem = {
-        id: isCurrentGroup ? null : requestedCatalogId,
-        path: isCurrentGroup ? currentPath : null,
-        name: shortCategoryName(currentPath),
-        fullPath: currentPath,
-        count: currentCount,
-      };
-      html += capsuleLink(currentItem, 'sub-capsule-current');
-    }
-    // 当前文件夹在子项列表里时，它的孙文件夹紧跟在大药丸后面
-    const currentItem = currentPath ? entry.items.find((it) => it.fullPath === currentPath) : null;
-    if (currentItem && currentItem.children) {
-      for (const g of currentItem.children) html += grandchildLink(currentItem, g);
-    }
+    if (entry.owner && entry.owner.fullPath) html += capsuleLink(entry.owner, 'sub-capsule-current');
     for (const item of entry.items) {
-      if (currentPath && item.fullPath === currentPath) continue;
-      html += capsuleLink(item, '');
+      html += capsuleLink(item, 'sub-capsule-child');
       for (const g of (item.children || [])) html += grandchildLink(item, g);
     }
     return html;
