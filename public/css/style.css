@@ -2837,24 +2837,17 @@ html[data-dock-font-color="blue"] .root-dock-name { color: #2563eb; }
   background-color: #3b82f6;
   color: #fff;
 }
-/* 胶囊区大小按相对当前文件夹的深度依次递减：当前文件夹正常大小，
-   直接子文件夹小一号，孙文件夹再小一号 */
-/* 当前文件夹本身：胶囊区第一位，正常大小（与标准药丸一致） */
+/* 当前文件夹本身：胶囊区第一位，比子文件夹大一号 */
 .sub-capsule-current {
-  font-size: 0.875rem;
-  line-height: 1.25rem;
-  padding: 0.375rem 1rem;
+  font-size: 1.05rem;
+  line-height: 1.5rem;
+  font-weight: 600;
+  padding: 0.5rem 1.25rem;
 }
-/* 直接子文件夹：比当前文件夹小一号 */
-.sub-capsule-child {
-  font-size: 0.8rem;
-  line-height: 1.125rem;
-  padding: 0.3125rem 0.875rem;
-}
-/* 孙文件夹：跟在父文件夹后面，比子文件夹再小一号，文字“父 - 子” */
+/* 孙文件夹：跟在父文件夹后面，比上一级小一号，文字“父 - 子” */
 .sub-capsule-grandchild {
-  font-size: 0.7rem;
-  line-height: 0.875rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
   padding: 0.25rem 0.75rem;
   opacity: 0.92;
 }

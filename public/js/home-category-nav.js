@@ -711,12 +711,10 @@
         return;
       }
       // 胶囊区展示方式（与服务端首屏共用一套规则）：
-      // 大小按相对当前文件夹的深度依次递减：当前文件夹正常大小，
-      // 直接子文件夹小一号，孙文件夹再小一号。
-      // ① 第一位是当前文件夹本身（正常大小药丸，点它回到本级视图）；
-      // ② 后面是锚定分组的直接子文件夹（小一号）；当前文件夹若在子项列表里，它已经是
-      // 第一位的药丸，列表里跳过它、不重复出现；它的孙文件夹紧跟在第一位药丸后面。
-      // ③ 有子文件夹的子文件夹，它的孙文件夹紧跟在它后面、再小一号，
+      // ① 第一位是当前文件夹本身（大一号药丸，点它回到本级视图）；
+      // ② 后面是锚定分组的直接子文件夹；当前文件夹若在子项列表里，它已经是
+      // 第一位的大药丸，列表里跳过它、不重复出现；它的孙文件夹紧跟在大药丸后面。
+      // ③ 有子文件夹的子文件夹，它的孙文件夹紧跟在它后面、比上一级小一号，
       // 文字写成“父 - 子”（例如“域名 - xyz域名”），只展开一层孙文件夹。
       // 选中态按完整路径判（当前路径本身，或当前路径在该项之下）。
       let currentFullPath = path;
@@ -731,8 +729,8 @@
         const dataAttr = isGroup ? `data-path="${escapeCapsuleHtml(item.path)}" data-count="${Number(item.count) || 0}"` : `data-id="${item.id}"`;
         return `<a href="${href}" ${dataAttr} data-full-name="${escapeCapsuleHtml(item.fullPath || item.name)}" title="${escapeCapsuleHtml(item.fullPath || item.name)}" class="sub-capsule${extraClass ? ' ' + extraClass : ''}${isActive ? ' is-active' : ''}">${escapeCapsuleHtml(item.name)}</a>`;
       };
-      // 孙文件夹药丸：比子文件夹再小一号，文字“父 - 子”；当前路径本身就是它时跳过
-      // （它已经是第一位的药丸），当前路径在它之下时照常变蓝
+      // 孙文件夹药丸：比上一级小一号，文字“父 - 子”；当前路径本身就是它时跳过
+      // （它已经是第一位的大药丸），当前路径在它之下时照常变蓝
       const grandchildLink = (parent, g) => {
         if (currentFullPath && g.fullPath === currentFullPath) return '';
         const isActive = currentFullPath !== '' && g.fullPath && (currentFullPath === g.fullPath || currentFullPath.startsWith(g.fullPath + ' / '));
@@ -761,14 +759,14 @@
           count: currentCount,
         }, 'sub-capsule-current');
       }
-      // 当前文件夹在子项列表里时，它的孙文件夹紧跟在第一位药丸后面
+      // 当前文件夹在子项列表里时，它的孙文件夹紧跟在大药丸后面
       const currentItem = currentFullPath ? entry.items.find((it) => it.fullPath === currentFullPath) : null;
       if (currentItem && currentItem.children) {
         for (const g of currentItem.children) html += grandchildLink(currentItem, g);
       }
       for (const item of entry.items) {
         if (currentFullPath && item.fullPath === currentFullPath) continue;
-        html += capsuleLink(item, 'sub-capsule-child');
+        html += capsuleLink(item, '');
         for (const g of (item.children || [])) html += grandchildLink(item, g);
       }
       wrap.innerHTML = html;
