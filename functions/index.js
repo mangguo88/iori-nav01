@@ -408,7 +408,9 @@ export async function onRequest(context) {
     }
     return null;
   }
-  // 直接子文件夹：真实分类带 id、子分组带 path，胶囊里都能点
+  // 直接子文件夹：真实分类带 id、子分组带 path，胶囊里都能点；
+  // 每项再带一层孙文件夹（children）：胶囊区在该子文件夹后面以“父 - 子”
+  // 小一号显示（只展开一层，再深的不用）
   const childCapsuleItems = (node) => (node.children || [])
     .map((c) => ({
       id: (c.id !== null && c.id !== undefined) ? c.id : null,
@@ -417,6 +419,15 @@ export async function onRequest(context) {
       fullPath: c.fullPath,
       // 汇总书签数（含子文件夹）：前端点分组筛出 0 封时，靠它判断下面是不是真有书签
       count: Number(c.count) || 0,
+      children: (c.children || [])
+        .map((g) => ({
+          id: (g.id !== null && g.id !== undefined) ? g.id : null,
+          path: (g.id !== null && g.id !== undefined) ? null : g.fullPath,
+          name: shortCategoryName(g.fullPath),
+          fullPath: g.fullPath,
+          count: Number(g.count) || 0,
+        }))
+        .filter((g) => g.id !== null || g.path !== null),
     }))
     .filter((c) => c.id !== null || c.path !== null);
   // 每个分类的胶囊表（供前端站内切换分类时重绘胶囊行；与 SSR 同一套规则）
@@ -463,12 +474,20 @@ export async function onRequest(context) {
       if (items.length > 0) subCapsuleEntry = { items, activeId: null };
     }
   }
+  // 胶囊区展示方式（服务端首屏与站内切换共用一套规则）：
+  // ① 第一位是当前文件夹本身（大一号药丸，点它回到本级视图）；
+  // ② 后面是锚定分组的直接子文件夹（现有规则：点进子文件夹后栏里还是同一组）；
+  // 当前文件夹若在子项列表里（它是锚定分组的孩子），它已经是第一位的大药丸，
+  // 列表里跳过它、不重复出现；它的孙文件夹紧跟在大药丸后面。
+  // ③ 有子文件夹的子文件夹，它的孙文件夹紧跟在它后面、比上一级小一号，
+  // 文字写成“父 - 子”（例如“域名 - xyz域名”），只展开一层孙文件夹。
   const renderCapsules = (entry) => {
     if (!entry || !entry.items || entry.items.length === 0) return '';
     // 选中态按完整路径判（当前路径本身，或当前路径在该项之下）：分组子项（没有 id）
-    // 也能变蓝/变绿；分组视图下没有哪一项是当前路径本身，所以都不变蓝
+    // 也能变蓝/变绿
     const currentPath = String(currentCatalogName || '').trim();
-    return entry.items.map((item) => {
+    // 当前文件夹本身的第一位大药丸（分类走 ?catalog=，分组走 ?path=）
+    const capsuleLink = (item, extraClass) => {
       const isActive = currentPath !== '' && item.fullPath && (currentPath === item.fullPath || currentPath.startsWith(item.fullPath + ' / '));
       const isGroup = item.id === null || item.id === undefined;
       const href = isGroup
@@ -477,8 +496,50 @@ export async function onRequest(context) {
       const dataAttr = isGroup
         ? `data-path="${escapeHTML(item.path)}" data-count="${Number(item.count) || 0}"`
         : `data-id="${item.id}"`;
-      return `<a href="${href}" ${dataAttr} data-full-name="${escapeHTML(item.fullPath)}" title="${escapeHTML(item.fullPath)}" class="sub-capsule${isActive ? ' is-active' : ''}">${escapeHTML(item.name)}</a>`;
-    }).join('');
+      return `<a href="${href}" ${dataAttr} data-full-name="${escapeHTML(item.fullPath)}" title="${escapeHTML(item.fullPath)}" class="sub-capsule${extraClass ? ' ' + extraClass : ''}${isActive ? ' is-active' : ''}">${escapeHTML(item.name)}</a>`;
+    };
+    // 孙文件夹药丸：比上一级小一号，文字“父 - 子”；当前路径本身就是它时跳过
+    // （它已经是第一位的大药丸），当前路径在它之下时照常变蓝
+    const grandchildLink = (parent, g) => {
+      if (currentPath && g.fullPath === currentPath) return '';
+      const isActive = currentPath !== '' && g.fullPath && (currentPath === g.fullPath || currentPath.startsWith(g.fullPath + ' / '));
+      const isGroup = g.id === null || g.id === undefined;
+      const href = isGroup
+        ? `?path=${encodeURIComponent(g.path)}`
+        : `?catalog=${encodeURIComponent(String(g.id))}`;
+      const dataAttr = isGroup
+        ? `data-path="${escapeHTML(g.path)}" data-count="${Number(g.count) || 0}"`
+        : `data-id="${g.id}"`;
+      return `<a href="${href}" ${dataAttr} data-full-name="${escapeHTML(g.fullPath)}" title="${escapeHTML(g.fullPath)}" class="sub-capsule sub-capsule-grandchild${isActive ? ' is-active' : ''}">${escapeHTML(parent.name + ' - ' + g.name)}</a>`;
+    };
+    let html = '';
+    if (currentPath) {
+      const isCurrentGroup = !catalogExists;
+      let currentCount = 0;
+      if (isCurrentGroup) {
+        const currentNode = findTreeNodeByPath(sidebarCategoryTree, currentPath);
+        currentCount = currentNode ? (Number(currentNode.count) || 0) : 0;
+      }
+      const currentItem = {
+        id: isCurrentGroup ? null : requestedCatalogId,
+        path: isCurrentGroup ? currentPath : null,
+        name: shortCategoryName(currentPath),
+        fullPath: currentPath,
+        count: currentCount,
+      };
+      html += capsuleLink(currentItem, 'sub-capsule-current');
+    }
+    // 当前文件夹在子项列表里时，它的孙文件夹紧跟在大药丸后面
+    const currentItem = currentPath ? entry.items.find((it) => it.fullPath === currentPath) : null;
+    if (currentItem && currentItem.children) {
+      for (const g of currentItem.children) html += grandchildLink(currentItem, g);
+    }
+    for (const item of entry.items) {
+      if (currentPath && item.fullPath === currentPath) continue;
+      html += capsuleLink(item, '');
+      for (const g of (item.children || [])) html += grandchildLink(item, g);
+    }
+    return html;
   };
   const subCapsulesHtml = `<div id="subCapsules" class="sub-capsules${subCapsuleEntry ? '' : ' hidden'}">${renderCapsules(subCapsuleEntry)}</div>`;
 

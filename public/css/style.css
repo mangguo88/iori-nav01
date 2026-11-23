@@ -2837,6 +2837,20 @@ html[data-dock-font-color="blue"] .root-dock-name { color: #2563eb; }
   background-color: #3b82f6;
   color: #fff;
 }
+/* 当前文件夹本身：胶囊区第一位，比子文件夹大一号 */
+.sub-capsule-current {
+  font-size: 1.05rem;
+  line-height: 1.5rem;
+  font-weight: 600;
+  padding: 0.5rem 1.25rem;
+}
+/* 孙文件夹：跟在父文件夹后面，比上一级小一号，文字“父 - 子” */
+.sub-capsule-grandchild {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  padding: 0.25rem 0.75rem;
+  opacity: 0.92;
+}
 .dark .sub-capsule {
   color: #d1d5db;
   background-color: rgba(55, 65, 81, 0.9);

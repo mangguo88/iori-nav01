@@ -710,15 +710,66 @@
         if (row) row.classList.add('hidden');
         return;
       }
-      // 选中态按完整路径判（当前路径本身，或当前路径在该项之下）：分组子项（没有 id）
-      // 也能变蓝；分组视图下没有哪一项是当前路径本身，所以都不变蓝
-      wrap.innerHTML = entry.items.map((item) => {
-        const isActive = path !== '' && item.fullPath && (path === item.fullPath || path.startsWith(item.fullPath + ' / '));
+      // 胶囊区展示方式（与服务端首屏共用一套规则）：
+      // ① 第一位是当前文件夹本身（大一号药丸，点它回到本级视图）；
+      // ② 后面是锚定分组的直接子文件夹；当前文件夹若在子项列表里，它已经是
+      // 第一位的大药丸，列表里跳过它、不重复出现；它的孙文件夹紧跟在大药丸后面。
+      // ③ 有子文件夹的子文件夹，它的孙文件夹紧跟在它后面、比上一级小一号，
+      // 文字写成“父 - 子”（例如“域名 - xyz域名”），只展开一层孙文件夹。
+      // 选中态按完整路径判（当前路径本身，或当前路径在该项之下）。
+      let currentFullPath = path;
+      if (!currentFullPath && catalogId) {
+        const link = findSidebarLinkById(catalogId);
+        if (link) currentFullPath = String(link.getAttribute('data-full-name') || '').trim();
+      }
+      const capsuleLink = (item, extraClass) => {
+        const isActive = currentFullPath !== '' && item.fullPath && (currentFullPath === item.fullPath || currentFullPath.startsWith(item.fullPath + ' / '));
         const isGroup = item.id === null || item.id === undefined;
         const href = isGroup ? `?path=${encodeURIComponent(item.path)}` : `?catalog=${encodeURIComponent(String(item.id))}`;
         const dataAttr = isGroup ? `data-path="${escapeCapsuleHtml(item.path)}" data-count="${Number(item.count) || 0}"` : `data-id="${item.id}"`;
-        return `<a href="${href}" ${dataAttr} data-full-name="${escapeCapsuleHtml(item.fullPath || item.name)}" title="${escapeCapsuleHtml(item.fullPath || item.name)}" class="sub-capsule${isActive ? ' is-active' : ''}">${escapeCapsuleHtml(item.name)}</a>`;
-      }).join('');
+        return `<a href="${href}" ${dataAttr} data-full-name="${escapeCapsuleHtml(item.fullPath || item.name)}" title="${escapeCapsuleHtml(item.fullPath || item.name)}" class="sub-capsule${extraClass ? ' ' + extraClass : ''}${isActive ? ' is-active' : ''}">${escapeCapsuleHtml(item.name)}</a>`;
+      };
+      // 孙文件夹药丸：比上一级小一号，文字“父 - 子”；当前路径本身就是它时跳过
+      // （它已经是第一位的大药丸），当前路径在它之下时照常变蓝
+      const grandchildLink = (parent, g) => {
+        if (currentFullPath && g.fullPath === currentFullPath) return '';
+        const isActive = currentFullPath !== '' && g.fullPath && (currentFullPath === g.fullPath || currentFullPath.startsWith(g.fullPath + ' / '));
+        const isGroup = g.id === null || g.id === undefined;
+        const href = isGroup ? `?path=${encodeURIComponent(g.path)}` : `?catalog=${encodeURIComponent(String(g.id))}`;
+        const dataAttr = isGroup ? `data-path="${escapeCapsuleHtml(g.path)}" data-count="${Number(g.count) || 0}"` : `data-id="${g.id}"`;
+        return `<a href="${href}" ${dataAttr} data-full-name="${escapeCapsuleHtml(g.fullPath || g.name)}" title="${escapeCapsuleHtml(g.fullPath || g.name)}" class="sub-capsule sub-capsule-grandchild${isActive ? ' is-active' : ''}">${escapeCapsuleHtml(parent.name + ' - ' + g.name)}</a>`;
+      };
+      let html = '';
+      if (currentFullPath) {
+        const isCurrentGroup = !catalogId;
+        let currentCount = 0;
+        if (isCurrentGroup) {
+          const sideLink = findSidebarLinkByPath(currentFullPath);
+          if (sideLink) currentCount = Number(sideLink.getAttribute('data-count') || 0);
+          if (!currentCount) {
+            const cur = entry.items.find((it) => it.fullPath === currentFullPath);
+            if (cur) currentCount = Number(cur.count) || 0;
+          }
+        }
+        html += capsuleLink({
+          id: isCurrentGroup ? null : catalogId,
+          path: isCurrentGroup ? currentFullPath : null,
+          name: shortNameFromPath(currentFullPath),
+          fullPath: currentFullPath,
+          count: currentCount,
+        }, 'sub-capsule-current');
+      }
+      // 当前文件夹在子项列表里时，它的孙文件夹紧跟在大药丸后面
+      const currentItem = currentFullPath ? entry.items.find((it) => it.fullPath === currentFullPath) : null;
+      if (currentItem && currentItem.children) {
+        for (const g of currentItem.children) html += grandchildLink(currentItem, g);
+      }
+      for (const item of entry.items) {
+        if (currentFullPath && item.fullPath === currentFullPath) continue;
+        html += capsuleLink(item, '');
+        for (const g of (item.children || [])) html += grandchildLink(item, g);
+      }
+      wrap.innerHTML = html;
       wrap.classList.remove('hidden');
       if (row) row.classList.remove('hidden');
     }
