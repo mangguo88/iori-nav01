@@ -322,10 +322,54 @@
     }
   }
 
+  // 同步到浏览器收藏夹：后台页面写不了浏览器收藏夹，只能请扩展代劳。
+  // 经 content.js 桥接：页面 postMessage -> 扩展后台拉取 -> 结果 post 回来。
+  // 没装扩展时桥接无人回应，10 秒无 ACK 即提示；拉取本身最多等 2 分钟。
+  function requestPullToBrowser() {
+    const refs = getBackupRefs();
+    const btn = refs.syncToBrowserBtn;
+    if (btn) btn.disabled = true;
+    ui.showPullStatus?.('正在同步到浏览器收藏夹…', '');
+    let done = false;
+    const finish = (text, type) => {
+      if (done) return;
+      done = true;
+      window.removeEventListener('message', onMessage);
+      clearTimeout(ackTimer);
+      clearTimeout(resultTimer);
+      if (btn) btn.disabled = false;
+      ui.showPullStatus?.(text, type);
+    };
+    const ackTimer = setTimeout(() => {
+      finish('没有收到扩展的回应：请确认已安装并启用 Iori Nav 书签同步扩展（1.1.0 以上版本），然后刷新本页再试。', 'error');
+    }, 10000);
+    const resultTimer = setTimeout(() => {
+      finish('同步超时：扩展超过 2 分钟没有回结果，请去扩展弹窗里看状态，或重新点一次。', 'error');
+    }, 120000);
+    const onMessage = (event) => {
+      if (event.source !== window || !event.data) return;
+      if (event.data.type === 'IORI_PULL_ACK') {
+        clearTimeout(ackTimer);
+        ui.showPullStatus?.('扩展已收到，正在同步到浏览器收藏夹…', '');
+        return;
+      }
+      if (event.data.type !== 'IORI_PULL_RESULT') return;
+      const d = event.data.data || {};
+      if (event.data.ok) {
+        finish(`已同步到浏览器收藏夹：新建 ${d.created || 0} 个，更新 ${d.updated || 0} 个，移动 ${d.moved || 0} 个，共 ${d.total || 0} 个`, 'success');
+      } else {
+        finish('同步失败：' + (event.data.error || '未知错误'), 'error');
+      }
+    };
+    window.addEventListener('message', onMessage);
+    window.postMessage({ type: 'IORI_PULL_REQUEST' }, '*');
+  }
+
   function init() {
     const refs = getBackupRefs();
     if (!refs.backupBtn) return false;
     refs.backupBtn.addEventListener('click', runBackup);
+    refs.syncToBrowserBtn?.addEventListener('click', requestPullToBrowser);
     refs.clearPasswordBtn?.addEventListener('click', requestClearWebdavPassword);
     refs.listBtn?.addEventListener('click', fetchBackupList);
     refs.restoreBtn?.addEventListener('click', restoreBackup);
@@ -356,6 +400,7 @@
     runBackup,
     fetchBackupList,
     restoreBackup,
+    requestPullToBrowser,
     deleteBackup,
     requestDeleteBackup,
   };

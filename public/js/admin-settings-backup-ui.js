@@ -22,6 +22,8 @@
       closeRestoreBtn: document.getElementById('closeWebdavRestoreModal'),
       cancelRestoreBtn: document.getElementById('cancelWebdavRestoreBtn'),
       restoreStatusEl: document.getElementById('webdavRestoreStatus'),
+      syncToBrowserBtn: document.getElementById('syncToBrowserBtn'),
+      syncToBrowserStatus: document.getElementById('syncToBrowserStatus'),
       deleteConfirmModal: document.getElementById('webdavDeleteConfirmModal'),
       closeDeleteConfirmBtn: document.getElementById('closeWebdavDeleteConfirmModal'),
       cancelDeleteBtn: document.getElementById('cancelWebdavDeleteBtn'),
@@ -49,6 +51,10 @@
 
   function showRestoreStatus(text, type) {
     setStatus(getBackupRefs().restoreStatusEl, text, type);
+  }
+
+  function showPullStatus(text, type) {
+    setStatus(getBackupRefs().syncToBrowserStatus, text, type);
   }
 
   function syncPasswordField(currentSettings) {
@@ -179,6 +185,7 @@
     getBackupRefs,
     showStatus,
     showRestoreStatus,
+    showPullStatus,
     syncPasswordField,
     setRestoreError,
     openRestoreModal,

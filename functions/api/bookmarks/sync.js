@@ -59,6 +59,18 @@ function checkToken(request, env) {
   return { ok: true };
 }
 
+// 浏览器拉取时标题会写成 "标题 —— 描述"；推回来时先去掉这段后缀再存，
+// 否则网站上的标题会被污染、越变越长。标题本身含 " —— " 的极少见，
+// 碰到了推回来时会被截断（描述不参与比对、不会被覆盖）。
+const DESC_SUFFIX_SEP = ' —— ';
+function stripDescSuffix(name) {
+  if (typeof name !== 'string') return name;
+  const idx = name.indexOf(DESC_SUFFIX_SEP);
+  if (idx <= 0) return name;
+  const clean = name.slice(0, idx).trim();
+  return clean || name;
+}
+
 // "工作 / 工具" / "工作/工具" / " 工作 / 工具 " -> "工作 / 工具"；空或只有顶层 -> "未分类"
 function normalizeFolderPath(folderPath) {
   if (!folderPath || typeof folderPath !== 'string') return '未分类';
@@ -132,7 +144,7 @@ export async function onRequestPost(context) {
   async function upsertOne(item) {
     const url = (item.url || '').trim();
     const oldUrl = (item.oldUrl || '').trim();
-    const name = (item.name || '').trim() || url;
+    const name = stripDescSuffix((item.name || '').trim()) || url;
     if (!isValidUrl(url)) return { skipped: 1 };
     const catelogId = await resolveCategoryId(item.folderPath);
 
@@ -197,7 +209,7 @@ export async function onRequestPost(context) {
       const updateStmts = [];
       for (const item of items) {
         const url = (item.url || '').trim();
-        const name = (item.name || '').trim() || url;
+        const name = stripDescSuffix((item.name || '').trim()) || url;
         if (!isValidUrl(url)) { skipped++; continue; }
         const catelogId = categoryCache.get(normalizeFolderPath(item.folderPath));
         if (existingUrls.has(url)) {
