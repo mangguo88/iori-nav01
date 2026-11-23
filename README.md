@@ -1,14 +1,14 @@
-# 灰色轨迹 - 精品网址导航站
+# 芒果书签
 
 <p align="center">
   一个优雅、快速、易于部署的书签（网址）收藏与分享平台，完全基于 Cloudflare 全家桶构建。
 </p>
 
 <p align="center">
-  <a href="https://github.com/jy02739244/iori-nav/stargazers"><img src="https://img.shields.io/github/stars/jy02739244/iori-nav?style=flat-square&logo=github&color=yellow" alt="Stars"></a>
-  <a href="https://github.com/jy02739244/iori-nav/network/members"><img src="https://img.shields.io/github/forks/jy02739244/iori-nav?style=flat-square&logo=github&color=blue" alt="Forks"></a>
-  <a href="https://github.com/jy02739244/iori-nav/blob/main/LICENSE"><img src="https://img.shields.io/github/license/jy02739244/iori-nav?style=flat-square&color=green" alt="License"></a>
-  <a href="https://github.com/jy02739244/iori-nav/issues"><img src="https://img.shields.io/github/issues/jy02739244/iori-nav?style=flat-square&color=orange" alt="Issues"></a>
+  <a href="https://github.com/mangguo88/mango-bookmarks/stargazers"><img src="https://img.shields.io/github/stars/mangguo88/mango-bookmarks?style=flat-square&logo=github&color=yellow" alt="Stars"></a>
+  <a href="https://github.com/mangguo88/mango-bookmarks/network/members"><img src="https://img.shields.io/github/forks/mangguo88/mango-bookmarks?style=flat-square&logo=github&color=blue" alt="Forks"></a>
+  <a href="https://github.com/mangguo88/mango-bookmarks/blob/main/LICENSE"><img src="https://img.shields.io/github/license/mangguo88/mango-bookmarks?style=flat-square&color=green" alt="License"></a>
+  <a href="https://github.com/mangguo88/mango-bookmarks/issues"><img src="https://img.shields.io/github/issues/mangguo88/mango-bookmarks?style=flat-square&color=orange" alt="Issues"></a>
 </p>
 
 <p align="center">
@@ -23,7 +23,7 @@
 </p>
 
 <p align="center">
-  <strong>🌐 在线体验:</strong> <a href="https://iori.hidns.vip/">https://iori.hidns.vip</a>
+  <strong>🌐 在线体验:</strong> <a href="https://iori-nav01.pages.dev/">https://iori-nav01.pages.dev</a>
 </p>
 
 ---
@@ -85,7 +85,7 @@
 
 ### 步骤 1：Fork 本仓库
 
-[![Fork on GitHub](https://img.shields.io/badge/Fork-GitHub-181717?style=for-the-badge&logo=github)](https://github.com/jy02739244/iori-nav/fork)
+[![Fork on GitHub](https://img.shields.io/badge/Fork-GitHub-181717?style=for-the-badge&logo=github)](https://github.com/mangguo88/mango-bookmarks/fork)
 
 点击上方 **"Fork on GitHub"** 按钮，并点上 ⭐ Star！
 
@@ -200,7 +200,7 @@ npx wrangler d1 execute book --local --file=schema.sql
 | 变量名 | 默认值 | 说明 |
 | :--- | :--- | :--- |
 | `ENABLE_PUBLIC_SUBMISSION` | `false` | 是否允许访客投稿 |
-| `SITE_NAME` | `灰色轨迹` | 首页站点名称（环境变量兜底） |
+| `SITE_NAME` | `芒果书签` | 首页站点名称（环境变量兜底） |
 | `SITE_DESCRIPTION` | `一个优雅、快速、易于部署的书签（网址）收藏与分享平台，完全基于 Cloudflare 全家桶构建` | 首页副标题（环境变量兜底） |
 | `FOOTER_TEXT` | `曾梦想仗剑走天涯` | 首页页脚文案 |
 | `ICON_API` | `https://faviconsnap.com/api/favicon?url=` | 自动补全 logo 的接口前缀 |
@@ -359,11 +359,13 @@ npx wrangler d1 execute book --local --file=schema.sql
 
 ## 📞 联系方式
 
-- **项目作者**：[@灰色轨迹](https://github.com/jy02739244)
-- **项目链接**：[https://github.com/jy02739244/iori-nav](https://github.com/jy02739244/iori-nav)
+- **项目作者**：[@mangguo88](https://github.com/mangguo88)
+- **项目链接**：[https://github.com/mangguo88/mango-bookmarks](https://github.com/mangguo88/mango-bookmarks)
+
+> 致谢：本项目早期基于 [iori-nav](https://github.com/jy02739244/iori-nav) 开发。
 
 <p align="center">如果你喜欢这个项目，请给它一个 ⭐️！</p>
 
 ## ⭐ Star 趋势
 
-[![Star History Chart](https://star-history.dera.page/svg?repos=jy02739244/iori-nav)](https://star-history.dera.page/#jy02739244/iori-nav)
+[![Star History Chart](https://star-history.dera.page/svg?repos=mangguo88/mango-bookmarks)](https://star-history.dera.page/#mangguo88/mango-bookmarks)
