@@ -475,18 +475,20 @@ export async function onRequest(context) {
     }
   }
   // 胶囊区展示方式（服务端首屏与站内切换共用一套规则）：
-  // ① 第一位是当前文件夹本身（大一号药丸，点它回到本级视图）；
-  // ② 后面是锚定分组的直接子文件夹（现有规则：点进子文件夹后栏里还是同一组）；
-  // 当前文件夹若在子项列表里（它是锚定分组的孩子），它已经是第一位的大药丸，
-  // 列表里跳过它、不重复出现；它的孙文件夹紧跟在大药丸后面。
-  // ③ 有子文件夹的子文件夹，它的孙文件夹紧跟在它后面、比上一级小一号，
+  // 大小按相对当前文件夹的深度依次递减：当前文件夹正常大小，
+  // 直接子文件夹小一号，孙文件夹再小一号。
+  // ① 第一位是当前文件夹本身（正常大小药丸，点它回到本级视图）；
+  // ② 后面是锚定分组的直接子文件夹（小一号；现有规则：点进子文件夹后栏里还是同一组）；
+  // 当前文件夹若在子项列表里（它是锚定分组的孩子），它已经是第一位的药丸，
+  // 列表里跳过它、不重复出现；它的孙文件夹紧跟在第一位药丸后面。
+  // ③ 有子文件夹的子文件夹，它的孙文件夹紧跟在它后面、再小一号，
   // 文字写成“父 - 子”（例如“域名 - xyz域名”），只展开一层孙文件夹。
   const renderCapsules = (entry) => {
     if (!entry || !entry.items || entry.items.length === 0) return '';
     // 选中态按完整路径判（当前路径本身，或当前路径在该项之下）：分组子项（没有 id）
     // 也能变蓝/变绿
     const currentPath = String(currentCatalogName || '').trim();
-    // 当前文件夹本身的第一位大药丸（分类走 ?catalog=，分组走 ?path=）
+    // 当前文件夹本身的第一位药丸（正常大小；分类走 ?catalog=，分组走 ?path=）
     const capsuleLink = (item, extraClass) => {
       const isActive = currentPath !== '' && item.fullPath && (currentPath === item.fullPath || currentPath.startsWith(item.fullPath + ' / '));
       const isGroup = item.id === null || item.id === undefined;
@@ -498,8 +500,8 @@ export async function onRequest(context) {
         : `data-id="${item.id}"`;
       return `<a href="${href}" ${dataAttr} data-full-name="${escapeHTML(item.fullPath)}" title="${escapeHTML(item.fullPath)}" class="sub-capsule${extraClass ? ' ' + extraClass : ''}${isActive ? ' is-active' : ''}">${escapeHTML(item.name)}</a>`;
     };
-    // 孙文件夹药丸：比上一级小一号，文字“父 - 子”；当前路径本身就是它时跳过
-    // （它已经是第一位的大药丸），当前路径在它之下时照常变蓝
+    // 孙文件夹药丸：比子文件夹再小一号，文字“父 - 子”；当前路径本身就是它时跳过
+    // （它已经是第一位的药丸），当前路径在它之下时照常变蓝
     const grandchildLink = (parent, g) => {
       if (currentPath && g.fullPath === currentPath) return '';
       const isActive = currentPath !== '' && g.fullPath && (currentPath === g.fullPath || currentPath.startsWith(g.fullPath + ' / '));
@@ -529,14 +531,14 @@ export async function onRequest(context) {
       };
       html += capsuleLink(currentItem, 'sub-capsule-current');
     }
-    // 当前文件夹在子项列表里时，它的孙文件夹紧跟在大药丸后面
+    // 当前文件夹在子项列表里时，它的孙文件夹紧跟在第一位药丸后面
     const currentItem = currentPath ? entry.items.find((it) => it.fullPath === currentPath) : null;
     if (currentItem && currentItem.children) {
       for (const g of currentItem.children) html += grandchildLink(currentItem, g);
     }
     for (const item of entry.items) {
       if (currentPath && item.fullPath === currentPath) continue;
-      html += capsuleLink(item, '');
+      html += capsuleLink(item, 'sub-capsule-child');
       for (const g of (item.children || [])) html += grandchildLink(item, g);
     }
     return html;
