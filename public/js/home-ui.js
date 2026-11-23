@@ -6,9 +6,11 @@
     const mobileOverlay = document.getElementById('mobileOverlay');
     const sidebarToggle = document.getElementById('sidebarToggle');
     const closeSidebar = document.getElementById('closeSidebar');
+    const sidebarToggleCheckbox = document.getElementById('sidebar-toggle');
 
     // ---- 窄窗口抽屉：鼠标靠近页面左右边缘自动滑出，移开自动滑回 ----
-    // 只在抽屉模式（<1024px）且有鼠标的设备上生效；宽屏侧栏常显，不动它；
+    // 只在抽屉模式（<1024px）且有鼠标的设备上生效；宽屏侧栏常显时不动它，
+    // 宽屏下侧栏被桌面开关藏起时，左边缘悬停也滑出（见下面的宽屏贴边滑出）；
     // 触屏没有悬停，抽屉点按行为保持原样。监听从页面加载起就生效，不用刷新。
     // 左边缘 -> 侧栏从左边滑出；右边缘 -> 侧栏从右边滑出（sidebar-right class）。
     const EDGE_ZONE = 24; // 左右边缘触发区宽度 px
@@ -74,6 +76,42 @@
       }, HIDE_DELAY);
     }
 
+    // ---- 宽屏贴边滑出：侧栏被桌面开关（#sidebar-toggle）藏起时，鼠标贴
+    // 左边缘也把它滑出来，移开 200ms 后自动收回；开关本身的状态不动，
+    // 只是临时盖掉藏起的 margin（见 style.css 的 wide-hover-open 规则），
+    // 主区不动，侧栏浮在内容上面。侧栏常显时不触发。 ----
+    let wideHoverOpen = false; // 当前是否由宽屏贴边悬停打开
+    let wideHideTimer = null;
+
+    function clearWideHideTimer() {
+      if (wideHideTimer) { clearTimeout(wideHideTimer); wideHideTimer = null; }
+    }
+
+    function clearWideHover() {
+      wideHoverOpen = false;
+      clearWideHideTimer();
+      sidebar?.classList.remove('wide-hover-open');
+    }
+
+    function showWideHover() {
+      if (!finePointer.matches || drawerQuery.matches) return;
+      if (!sidebarToggleCheckbox?.checked) return;
+      clearWideHideTimer();
+      if (wideHoverOpen) return;
+      wideHoverOpen = true;
+      if (sidebar) sidebar.scrollTop = 0;
+      sidebar?.classList.add('wide-hover-open');
+    }
+
+    function hideWideHover() {
+      if (!wideHoverOpen || wideHideTimer) return;
+      wideHideTimer = setTimeout(() => {
+        wideHideTimer = null;
+        wideHoverOpen = false;
+        sidebar?.classList.remove('wide-hover-open');
+      }, HIDE_DELAY);
+    }
+
     function onQueryChange(query, fn) {
       if (typeof query.addEventListener === 'function') query.addEventListener('change', fn);
       else if (typeof query.addListener === 'function') query.addListener(fn);
@@ -82,6 +120,7 @@
     // 窗口从抽屉模式切到宽屏时，悬停打开的状态收回（宽屏侧栏常显，不留多余的 open）；
     // 宽屏下 sidebar-right 的规则不生效，顺手摘掉，下次回窄窗口重新按边算。
     onQueryChange(drawerQuery, () => {
+      clearWideHover();
       if (drawerQuery.matches || !hoverOpen) return;
       hoverOpen = false;
       hoverSide = null;
@@ -93,21 +132,34 @@
     });
     // 指针从鼠标切到触屏时，悬停状态也收回（侧栏本身不动，只清悬停状态）
     onQueryChange(finePointer, () => {
-      if (!finePointer.matches) { hoverOpen = false; hoverSide = null; clearHideTimer(); }
+      if (!finePointer.matches) { hoverOpen = false; hoverSide = null; clearHideTimer(); clearWideHover(); }
+    });
+
+    // 桌面开关把侧栏钉回可见时，贴边滑出的临时状态一起清掉
+    sidebarToggleCheckbox?.addEventListener('change', () => {
+      if (!sidebarToggleCheckbox.checked) clearWideHover();
     });
 
     document.addEventListener('mousemove', (e) => {
-      if (!edgeHoverEnabled()) return;
       const x = e.clientX;
-      const inLeftZone = x <= EDGE_ZONE;
-      const inRightZone = x >= window.innerWidth - EDGE_ZONE;
       // 鼠标在侧栏上面时算“没移开”，点分类不会刚移进去就藏回去；
       // 在侧栏上不切边——边只由左右边缘触发决定。
       const overSidebar = !!(sidebar && e.target instanceof Node && sidebar.contains(e.target));
-      if (inLeftZone) showSidebarHover('left');
-      else if (inRightZone) showSidebarHover('right');
-      else if (overSidebar) showSidebarHover(hoverSide || 'left');
-      else hideSidebarHover();
+      if (edgeHoverEnabled()) {
+        const inLeftZone = x <= EDGE_ZONE;
+        const inRightZone = x >= window.innerWidth - EDGE_ZONE;
+        if (inLeftZone) showSidebarHover('left');
+        else if (inRightZone) showSidebarHover('right');
+        else if (overSidebar) showSidebarHover(hoverSide || 'left');
+        else hideSidebarHover();
+        return;
+      }
+      // 宽屏：侧栏被桌面开关藏起时，鼠标贴左边缘也滑出来，移开自动收回；
+      // 侧栏常显时什么都不做，开关本身照旧。
+      if (!finePointer.matches || drawerQuery.matches) return;
+      if (x <= EDGE_ZONE) showWideHover();
+      else if (overSidebar) showWideHover();
+      else hideWideHover();
     });
 
     function openSidebar() {
